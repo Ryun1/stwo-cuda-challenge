@@ -21,6 +21,7 @@ from attestation import validate_record
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from harness.sandbox import IMAGE
+from harness.kernel_closure import verify as verify_kernel_closure
 
 
 def setting(name: str, fallback: Path) -> Path:
@@ -145,6 +146,7 @@ def main() -> None:
         parser.error("candidate source differs from submitted patch")
     check_patch(args.candidate_patch.resolve(), args.candidate_source.resolve(), config,
                 already_applied=True)
+    verify_kernel_closure(args.candidate_source.resolve(), args.baseline_source.resolve())
     empty_patch = args.out / "baseline-empty.patch"
     empty_patch.write_bytes(b"")
     baseline_build = json.loads(args.baseline_attestation.read_text())

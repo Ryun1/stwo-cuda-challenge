@@ -12,8 +12,10 @@ then one public H200 smoke case, then the complete qualification basket.
 Measure external process time and whole-device memory; use backend phase
 telemetry to explain changes, not as the ranked result. Check all published
 proofs against the pinned verifier and canonical digests. Do not change the
-security profile, manifests, judge, scoring code, or reference outputs in a
-candidate submission. Challenge maintainers keep judge changes separate from
+security profile, challenge manifests, judge, scoring code, or reference outputs
+in a candidate submission. The capture script refreshes the prover's derived
+CUDA manifests after source edits; do not edit them by hand. Challenge
+maintainers keep judge changes separate from
 candidate patches; any semantic contract change needs a reviewed new epoch
 with its tests and reference data updated.
 

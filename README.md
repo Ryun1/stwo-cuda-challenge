@@ -58,6 +58,9 @@ timer, a source-only static estimate, or an unverified proof.
 3. Capture the source diff with `./scripts/capture-candidate.sh`. Optionally
    attach a prebuilt binary digest for the fast screening tier. The binary is
    never a substitute for source in a ranked submission.
+   Capture refreshes the derived CUDA manifests after kernel edits. The trusted
+   builder checks them against source and pinned product policy; only the
+   unmodified baseline must match the immutable upstream import hash.
 4. Build both arms, the pinned Rust verifiers, and the canonical preprocessing
    asset with `./setup.sh --build`. Run a small `smoke` on the H200,
    then a complete one-pass `qualify`. A `rank` run performs three ABBA rounds

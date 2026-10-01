@@ -12,6 +12,9 @@ not alter proof security, public outputs, verifier code, fixture selection,
 measurement, or the challenge contract. Capture the patch with
 `./scripts/capture-candidate.sh` and include a short `candidate/NOTES.md`
 explaining the mechanism, expected benefit, tests, and known tradeoffs.
+The capture script refreshes derived CUDA source/product manifests for kernel
+edits and checks them against the pinned product policy. Do not edit those
+manifests by hand; the upstream baseline closure remains immutable.
 
 The fast loop is a small local compile/test and one public PIE or recursion
 case. The expensive loop runs the whole H200 cohort only after the candidate

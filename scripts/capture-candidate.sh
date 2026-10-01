@@ -6,6 +6,7 @@ if [[ ! -d "$source_dir/.git" ]]; then
   printf 'Run ./setup.sh first.\n' >&2
   exit 1
 fi
+python3 scripts/refresh_cuda_manifests.py
 git -C "$source_dir" add -N -- src/backends/cuda src/integrations/cairo_cuda src/integrations/circuit_cuda src/products/cairo_cuda src/products/circuit_recursion_cuda
 mkdir -p candidate
 git -C "$source_dir" diff --binary HEAD > candidate/changes.patch

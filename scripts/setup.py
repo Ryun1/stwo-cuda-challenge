@@ -8,6 +8,8 @@ from pathlib import Path
 import shutil
 import subprocess
 
+from harness.kernel_closure import verify as verify_kernel_closure
+
 
 ROOT = Path(__file__).resolve().parents[1]
 PREPROCESSED_SHA256 = "4d4fda06dfa3bca19554510a158f6c50abad06a74d29c17885ed4cbb88ada34d"
@@ -89,6 +91,8 @@ def main() -> None:
     if args.build:
         if not shutil.which("zig") or not shutil.which("nvcc"):
             raise SystemExit("Zig and nvcc are required for the H200 build")
+        run("python3", "scripts/cuda_source_closure.py", cwd=baseline)
+        verify_kernel_closure(workspace, baseline)
         for tree in (baseline, workspace):
             run("zig", "build", "stwo-cairo-cuda", "circuit-recursion-cuda-resident",
                 "-Doptimize=ReleaseFast", cwd=tree)
