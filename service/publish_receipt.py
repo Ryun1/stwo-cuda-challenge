@@ -19,8 +19,28 @@ def public_ids() -> set[str]:
     return {case["id"] for case in manifest["cases"]}
 
 
+def mark_failed(store: Store, submission_id: str, tier: str) -> None:
+    """Release the single-GPU slot even when the judge left bad artifacts."""
+    with store.db() as connection:
+        connection.execute("UPDATE submissions SET status='judge_failed' WHERE id=?", (submission_id,))
+        connection.execute("""UPDATE judge_dispatches SET state='failed'
+            WHERE id=(SELECT id FROM judge_dispatches WHERE submission_id=? AND tier=?
+                      AND state IN ('reserved', 'dispatched') ORDER BY id DESC LIMIT 1)""",
+            (submission_id, tier))
+
+
 def publish(store: Store, submission_id: str, run_dir: Path, tier: str,
             *, judge_succeeded: bool = True) -> dict | None:
+    try:
+        return publish_validated(store, submission_id, run_dir, tier,
+                                 judge_succeeded=judge_succeeded)
+    except (IntakeError, OSError, ValueError, KeyError, TypeError):
+        mark_failed(store, submission_id, tier)
+        raise
+
+
+def publish_validated(store: Store, submission_id: str, run_dir: Path, tier: str,
+                      *, judge_succeeded: bool) -> dict | None:
     row = store.get(submission_id)
     if (not row or row["contract_epoch"] != store.config["contractEpoch"] or
             row["status"] not in ("built", "smoked", "qualified", "ranked", "judge_failed")):
@@ -31,12 +51,7 @@ def publish(store: Store, submission_id: str, run_dir: Path, tier: str,
     score_path = run_dir / "scorecard.json"
     if (not judge_succeeded or not evidence_path.is_file() or
             (tier == "rank" and not score_path.is_file())):
-        with store.db() as connection:
-            connection.execute("UPDATE submissions SET status='judge_failed' WHERE id=?", (submission_id,))
-            connection.execute("""UPDATE judge_dispatches SET state='failed'
-                WHERE id=(SELECT id FROM judge_dispatches WHERE submission_id=? AND tier=?
-                          AND state IN ('reserved', 'dispatched') ORDER BY id DESC LIMIT 1)""",
-                (submission_id, tier))
+        mark_failed(store, submission_id, tier)
         return None
     evidence = json.loads(evidence_path.read_text())
     if (evidence.get("schema") != "stwo-cuda-paired-evidence-v1" or

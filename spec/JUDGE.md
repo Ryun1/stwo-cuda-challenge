@@ -60,6 +60,8 @@ that patch in a fresh checkout and produces a trusted build attestation.
 `service/publish_receipt.py` joins a completed H200 run to the staged job only
 when the workflow judge step succeeded. A failed judge step cannot promote a
 scorecard left on disk after an eligibility guard or later validation failure.
+Malformed or mismatched judge artifacts also fail the attempt and release its
+single-GPU queue slot.
 `service/dispatch.py` checks tier prerequisites and allows one active H200
 dispatch at a time before triggering the manual GitHub Actions workflow.
 The workflow is not triggered for every PR. Deployment still needs

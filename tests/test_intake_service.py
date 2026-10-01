@@ -191,6 +191,38 @@ class IntakeTests(unittest.TestCase):
         self.assertEqual(self.store.get(submission_id)["judge_dispatch"]["state"], "failed")
         self.assertIsNone(self.store.receipt(submission_id, "rank"))
 
+    def test_invalid_judge_artifacts_release_gpu_slot(self):
+        row = self.store.submit(self.repository, self.commit)
+        submission_id = row["id"]
+        (self.store.state / "jobs" / submission_id / "build-attestation.json").write_text(
+            json.dumps({"source_commit": self.commit, "contract_epoch": "test-v1",
+                        "patch_sha256": row["patch_sha256"]}))
+        with self.store.db() as connection:
+            connection.execute("UPDATE submissions SET status='built' WHERE id=?", (submission_id,))
+        for index, bad_scorecard in enumerate((False, True)):
+            with self.store.db() as connection:
+                connection.execute("""INSERT INTO judge_dispatches
+                    (submission_id, tier, track, state, created_utc)
+                    VALUES (?, 'rank', 'balanced', 'dispatched', ?)""",
+                    (submission_id, f"2026-10-01T00:00:0{index}Z"))
+            run = self.root / f"invalid-rank-{index}"
+            run.mkdir()
+            if bad_scorecard:
+                (run / "evidence.json").write_text(json.dumps({
+                    "schema": "stwo-cuda-paired-evidence-v1", "contract_epoch": "test-v1",
+                    "source_commit": self.commit, "tier": "rank",
+                    "manifest_sha256": "1" * 64, "candidate": []}))
+                (run / "scorecard.json").write_text(json.dumps({
+                    "schema": "stwo-cuda-scorecard-v1", "contract_epoch": "test-v1",
+                    "manifest_sha256": "0" * 64}))
+            else:
+                (run / "evidence.json").write_text("{")
+                (run / "scorecard.json").write_text("{}")
+            with self.assertRaises((ValueError, IntakeError)):
+                publish(self.store, submission_id, run, "rank")
+            self.assertEqual(self.store.get(submission_id)["judge_dispatch"]["state"], "failed")
+            self.assertIsNone(self.store.receipt(submission_id, "rank"))
+
     def test_dispatch_enforces_tiers_and_one_active_gpu_slot(self):
         row = self.store.submit(self.repository, self.commit)
         submission_id = row["id"]
