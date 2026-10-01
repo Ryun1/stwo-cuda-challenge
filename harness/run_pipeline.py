@@ -30,8 +30,12 @@ def leaf_input(wrapped: Path, preimage: Path, target: Path) -> None:
 
 
 def execute(source: Path, fixtures: Path, case: dict, out: Path, *, plan_only: bool = False) -> dict:
-    if case.get("family") != "pipeline" or case.get("mode") not in ("serial_external", "batch_integrated_external"):
+    modes = {"serial": "serial", "serial_external": "serial",
+             "batch_integrated": "batch_integrated",
+             "batch_integrated_external": "batch_integrated"}
+    if case.get("family") != "pipeline" or case.get("mode") not in modes:
         raise ValueError("external pipeline requires an explicit mode")
+    mode = modes[case["mode"]]
     source = source.resolve()
     fixtures = fixtures.resolve()
     out.mkdir(parents=True, exist_ok=True)
@@ -71,7 +75,7 @@ def execute(source: Path, fixtures: Path, case: dict, out: Path, *, plan_only: b
                       "output_preimage": [str(int(x, 16)) for x in values]})
     manifest = out / "leaves.json"
     manifest.write_text(json.dumps({"leaves": [str(path) for path in leaves]}, indent=2) + "\n")
-    if case["mode"] == "serial_external":
+    if mode == "serial":
         fold = [str(circuit), "fold-tree", "--registry", str(registry),
                 "--manifest", str(manifest), "--proof", str(root),
                 "--outputs", str(outputs), "--packed", str(packed)]
@@ -87,7 +91,7 @@ def execute(source: Path, fixtures: Path, case: dict, out: Path, *, plan_only: b
                 "cairo_reports": [str(path) for path in cairo_reports]}
         (out / "plan.json").write_text(json.dumps(plan, indent=2) + "\n")
         return plan
-    if case["mode"] == "serial_external":
+    if mode == "serial":
         for item in planned:
             run(item["command"], Path(item["log"]))
             leaf_input(item["wrapped"], item["preimage"], item["leaf"])

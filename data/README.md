@@ -34,6 +34,8 @@ host can also populate missing inputs with `python3 scripts/fetch_public.py
 --base HTTPS_BUNDLE_URL --out data/inputs`; that downloader checks the manifest
 and every blob hash. The manifest keeps the original relative fixture names so
 existing judge-owned stores and receipts remain compatible.
+Both scored full-pipeline modes use these CPI and preimage files directly;
+the runner does not need the original PIE ZIPs or a separate adaptation step.
 
 The six standalone PIE proof hashes are valid output obligations, but their
 raw historical proof JSON was not saved by the original H200 sweep. To fill

@@ -257,7 +257,8 @@ def main() -> None:
                 plan = max(arenas)
             else:
                 case_dir.mkdir()
-                if case.get("mode") in ("serial_external", "batch_integrated_external"):
+                if case.get("mode") in ("serial", "batch_integrated",
+                                        "serial_external", "batch_integrated_external"):
                     case_file = case_dir / "case.json"
                     case_file.write_text(json.dumps(case))
                     command = ["python3", str(ROOT / "harness/run_pipeline.py"),
@@ -308,32 +309,7 @@ def main() -> None:
                         raise RuntimeError("external pipeline circuit proof telemetry differs")
                     plan = max(arenas)
                 else:
-                    script = source / "tools/starknet-block-collector/circuit_pipeline.py"
-                    names = [Path(item["path"]).name.removesuffix(".prover_input.cpi")
-                             for item in case["inputs"]]
-                    command = ["python3", str(script), "--backend", "cuda-resident",
-                               "--adapted-dir", str(fixture_root), "--adapted-format", "compact",
-                               "--circuit-prover", str(circuit), "--out", str(case_dir / "result")]
-                    if case.get("mode") == "batch_integrated":
-                        command.extend(["--cuda-batch", "--cuda-integrated"])
-                    elif case.get("mode") != "serial":
-                        raise RuntimeError("unknown pipeline mode")
-                    measured = run([*command, *names], case_dir / "run", nvml, env)
-                    receipt = json.loads((case_dir / "result/receipt.json").read_text())
-                    if receipt.get("backend") != "cuda-resident" or len(receipt.get("leaves", [])) != 2:
-                        raise RuntimeError("invalid resident pipeline receipt")
-                    if receipt.get("registry_sha256") != sha(source / "vectors/circuit/official/registries/production.json"):
-                        raise RuntimeError("pipeline registry digest differs")
-                    for key, item in (("proof_sha256", "proof"), ("outputs_sha256", "outputs"),
-                                      ("packed_sha256", "packed")):
-                        if receipt["root"][item]["sha256"] != case["expected_root"][key]:
-                            raise RuntimeError(f"pipeline root {item} differs")
-                    for name in names:
-                        registry_proof_verifier(args.registry_cairo_verifier,
-                                                case_dir / "result" / f"{name}.cairo_proof.json",
-                                                case_dir / f"cairo-verification-{name}")
-                    plan = max(row["cairo_cuda_metrics"]["planned_arena_bytes"]
-                               for row in receipt["leaves"])
+                    raise RuntimeError(f"unknown pipeline mode: {case.get('mode')}")
             row = {"case_id": case["id"], "round": args.round, "time_s": measured["time_s"],
                    "peak_device_bytes": measured["peak_device_bytes"], **flags(plan)}
             rows.append(row)

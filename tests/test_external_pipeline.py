@@ -28,17 +28,22 @@ class ExternalPipelineTests(unittest.TestCase):
                 inputs.append({"path": cpi, "sha256": sha(cpi_bytes),
                                "preimage_path": preimage,
                                "preimage_sha256": sha(preimage_bytes)})
-            case = {"family": "pipeline", "mode": "serial_external", "inputs": inputs}
+            case = {"family": "pipeline", "mode": "serial", "inputs": inputs}
             serial = execute(root / "source", fixtures, case, root / "serial", plan_only=True)
             self.assertEqual(len(serial["commands"]), 3)
             self.assertEqual([command[1] for command in serial["commands"]],
                              ["leaf-wrap", "leaf-wrap", "fold-tree"])
-            case["mode"] = "batch_integrated_external"
+            self.assertEqual(serial["commands"][0][serial["commands"][0].index("--input") + 1],
+                             str((fixtures / "leaf-0.cpi").resolve()))
+            case["mode"] = "batch_integrated"
             batch = execute(root / "source", fixtures, case, root / "batch", plan_only=True)
             self.assertEqual(len(batch["commands"]), 1)
             self.assertEqual(batch["commands"][0][1], "leaf-wrap-batch")
             self.assertEqual(json.loads((root / "batch/batch.json").read_text())[0]["output_preimage"],
                              ["1", "2"])
+            case["mode"] = "batch_integrated_external"
+            self.assertEqual(len(execute(root / "source", fixtures, case, root / "holdout",
+                                         plan_only=True)["commands"]), 1)
             (fixtures / "leaf-0.cpi").write_bytes(b"mutated")
             with self.assertRaises(ValueError):
                 execute(root / "source", fixtures, case, root / "bad", plan_only=True)
