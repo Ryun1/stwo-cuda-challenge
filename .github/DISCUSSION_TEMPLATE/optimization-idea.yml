@@ -1,0 +1,24 @@
+title: "Optimization idea"
+labels: ["research"]
+body:
+  - type: textarea
+    id: bottleneck
+    attributes:
+      label: Measured bottleneck
+      description: Include workload IDs, phase timing, device peak, and profiler evidence.
+    validations:
+      required: true
+  - type: textarea
+    id: mechanism
+    attributes:
+      label: Proposed mechanism and prediction
+      description: State the change, expected speed/memory impact, and a falsifiable result.
+    validations:
+      required: true
+  - type: textarea
+    id: qualification
+    attributes:
+      label: Qualification plan
+      description: List proof-verification, security, and H200 measurements needed.
+    validations:
+      required: true

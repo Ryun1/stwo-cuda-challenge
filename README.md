@@ -1,0 +1,97 @@
+# Stwo CUDA Challenge
+
+Optimize the production Cairo and circuit-recursion CUDA paths in
+[`stwo-zig`](https://github.com/teddyjfpender/stwo-zig) on one H200. The ranked
+workload starts with **already adapted** Starknet PIE inputs, proves each PIE,
+wraps Cairo proofs in circuit verifier proofs, and folds consecutive leaves to
+one recursive root. The judge owns the inputs, clock, memory measurement,
+security settings, independent Cairo verification, and canonical root checks.
+
+This is a standalone challenge repository, modeled on the contract/editable
+surface/workflow split in [QSB](https://github.com/Layr-Labs/quantum-safe-bitcoin-challenge)
+and the research-discussion habit in [sig.golf](https://github.com/Layr-Labs/sig.golf).
+The pinned prover source is fetched into `workspace/stwo-zig`; participant source
+changes are captured as a patch under `candidate/`. No production prover code
+lives in this challenge repository's harness.
+That source commit is on the upstream `main` branch (PR #204). Paths under
+`/tmp` in development receipts are local build outputs or generated fixtures;
+they are not required source checkouts. `./setup.sh` obtains the exact source
+commit, and all public fixtures are addressed by hashes in
+[`fixtures/public-v1.json`](fixtures/public-v1.json).
+
+Start with [TASK.md](TASK.md). The fixed contract is [benchmark.json](benchmark.json),
+the workload and proof obligations are in [spec/WORKLOADS.md](spec/WORKLOADS.md),
+and the scoring and tradeoffs are in [spec/SCORING.md](spec/SCORING.md).
+The specific upstream design choices are recorded in
+[spec/REFERENCES.md](spec/REFERENCES.md).
+
+Three rankings use the **same validated proofs and measurements**. The public
+basket currently has six component-diverse PIEs, two fixed-leaf root folds
+(two leaves and eight distinct contiguous leaves), and two full PIE-to-root
+modes (serial and integrated batch):
+
+| Track | Objective | Why it exists |
+| --- | --- | --- |
+| `latency` | Minimize the weighted geometric mean of adapted-input-to-publication time | Fastest usable H200 pipeline. |
+| `memory` | Minimize the weighted geometric mean of whole-device peak bytes, with a latency guard | Make dense PIEs fit and enable later GPU choices. |
+| `balanced` | Minimize normalized time × peak memory, with per-case guardrails | Explore the Pareto tradeoff; a capacity proxy, not a dollar-cost claim. |
+
+Every score card publishes the uncompressed per-case `(time, memory)` ratios;
+`harness/frontier.py` derives Pareto status across judged submissions.
+Correctness is a hard gate for **all** tracks. The
+ranked suite is fixed by a versioned, hash-pinned manifest; holdout inputs use
+the same public shape classes. There is no score from a self-reported kernel
+timer, a source-only static estimate, or an unverified proof.
+
+## Development loop
+
+1. Prepare a Linux CUDA/H200 workspace with Zig 0.15.2, CUDA/nvcc, the pinned
+   official Rust Cairo verifier, and the judge-owned fixture mount.
+   `./setup.sh` creates separate pinned baseline and editable source checkouts;
+   it does not download private PIEs.
+2. Work in `workspace/stwo-zig` under the allowed CUDA source paths. Run
+   relevant small local tests before a GPU trial.
+3. Capture the source diff with `./scripts/capture-candidate.sh`. Optionally
+   attach a prebuilt binary digest for the fast screening tier. The binary is
+   never a substitute for source in a ranked submission.
+4. Build both arms with `./setup.sh --build`. Run a small `smoke` on the H200,
+   then a complete one-pass `qualify`. A `rank` run performs three ABBA rounds
+   and emits the selected track's score. Ranked service submissions require
+   the trusted builder to rebuild the pinned source plus submitted patch.
+
+For a prepared H200 host, the complete local command is:
+
+```sh
+./benchmark.sh --tier smoke --track balanced \
+  --baseline-source workspace/baseline \
+  --candidate-source workspace/stwo-zig \
+  --candidate-patch candidate/changes.patch \
+  --baseline-attestation .cache/attestations/baseline.json \
+  --candidate-attestation .cache/attestations/candidate.json \
+  --fixtures ../stwo-cuda-challenge-fixtures \
+  --preprocessed /absolute/path/preprocessed-canonical.bin \
+  --artifact-dir /absolute/path/cuda-artifact-cache \
+  --cairo-verifier /absolute/path/stwo-cairo-official-verifier \
+  --out .runs/local-smoke
+```
+
+Use `--tier qualify` for all cases once and `--tier rank` for paired scoring.
+The fixture path above is an example; in deployment the judge mounts its own
+read-only content-addressed store. Run `python3 scripts/materialize_public.py
+--source workspace/stwo-zig --out /absolute/fixture/store --verify-only` to
+check every public blob before spending GPU time. The canonical preprocessing
+asset is generated from the pinned prover with `zig build
+cairo-preprocessed-export -Doptimize=ReleaseFast` followed by
+`zig-out/bin/cairo-preprocessed-export /absolute/path/preprocessed-canonical.bin
+canonical`. Keep the 2 GiB asset outside Git.
+
+The service/runner design, cache keys, artifact policy, isolation, and H200
+budget controls are in [spec/JUDGE.md](spec/JUDGE.md). A real H200 deployment
+requires its fixture object store, verifier binaries, self-hosted runner, and
+operator secrets; these are intentionally outside Git. Until those are wired,
+the local scorer and contract tests are usable, but this repository does not
+claim to operate a live ranking service.
+
+Discussion prompts and the planned GitHub Discussions categories are in
+[spec/DISCUSSIONS.md](spec/DISCUSSIONS.md). No benchmark source, proof blob,
+API token, or private fixture belongs in a Discussion or submission PR.

@@ -1,0 +1,347 @@
+{
+  "schema": "stwo-cuda-challenge-fixtures-v1",
+  "contract_epoch": "h200-v1",
+  "source_commit": "b2873365dc28ed4bc4b27de10e01ea0beeef7c93",
+  "fixture_root_env": "STWO_FIXTURE_ROOT",
+  "cases": [
+    {
+      "id": "pie:15582797_15582797",
+      "family": "pie",
+      "kind": "cairo_proof",
+      "description": "one-block EC and Poseidon outlier",
+      "blocks": [
+        15582797,
+        15582797
+      ],
+      "os_steps": 20848320,
+      "input": {
+        "path": "15582797_15582797.cpi",
+        "sha256": "319b538ff50ad8e04735886a7844de300198194a4cc2128dcb57bc625ec4e4cb",
+        "bytes": 408205744
+      },
+      "historical_h200": {
+        "adapted_to_publication_s": 15.314,
+        "whole_device_peak_bytes": 90470678528,
+        "planned_arena_bytes": 88627473376
+      },
+      "source": "stwo-zig/vectors/reports/recursive-product-20260918/pie-scale-study-20261001/pie-scale.csv",
+      "expected_proof_sha256": "fcc457fee3bcaca85efd97d308daa1a16e849c633b4571144417543158eb1eeb"
+    },
+    {
+      "id": "pie:15603744_15603744",
+      "family": "pie",
+      "kind": "cairo_proof",
+      "description": "one-block bitwise outlier",
+      "blocks": [
+        15603744,
+        15603744
+      ],
+      "os_steps": 22219995,
+      "input": {
+        "path": "15603744_15603744.cpi",
+        "sha256": "6e178ca7bc3b7d4f0ccf43d7c283e8d069fd1d50ae9de87e2ea5ab419af17c5b",
+        "bytes": 444736304
+      },
+      "historical_h200": {
+        "adapted_to_publication_s": 8.242,
+        "whole_device_peak_bytes": 89698926592,
+        "planned_arena_bytes": 87875021696
+      },
+      "source": "stwo-zig/vectors/reports/recursive-product-20260918/pie-scale-study-20261001/pie-scale.csv",
+      "expected_proof_sha256": "bf963282d104deec420cdaec8e26f8b2fd235c2e2374a7a4f0b8d6eedf0f3109"
+    },
+    {
+      "id": "pie:15581148_15581148",
+      "family": "pie",
+      "kind": "cairo_proof",
+      "description": "one-block range-check-96 and modular outlier",
+      "blocks": [
+        15581148,
+        15581148
+      ],
+      "os_steps": 18809789,
+      "input": {
+        "path": "15581148_15581148.cpi",
+        "sha256": "272f0b1d79d89e999f83b8a34f01dbc3f7a500ecb815c189156bd3fb54e25e57",
+        "bytes": 377015036
+      },
+      "historical_h200": {
+        "adapted_to_publication_s": 7.446,
+        "whole_device_peak_bytes": 84531544064,
+        "planned_arena_bytes": 82697758816
+      },
+      "source": "stwo-zig/vectors/reports/recursive-product-20260918/pie-scale-study-20261001/pie-scale.csv",
+      "expected_proof_sha256": "fd4f9c27bad18a2c7f089b8af5eb7c8e3a3db1c7aeb3d38f3ad5b142f6061b3c"
+    },
+    {
+      "id": "pie:15590913_15590913",
+      "family": "pie",
+      "kind": "cairo_proof",
+      "description": "one-block Pedersen outlier",
+      "blocks": [
+        15590913,
+        15590913
+      ],
+      "os_steps": 22673315,
+      "input": {
+        "path": "15590913_15590913.cpi",
+        "sha256": "9d503fa0c6c818d8de84d3d71208df641bb62ec93e480687252128f698294bc3",
+        "bytes": 443939388
+      },
+      "historical_h200": {
+        "adapted_to_publication_s": 8.755,
+        "whole_device_peak_bytes": 105201074176,
+        "planned_arena_bytes": 103366794272
+      },
+      "source": "stwo-zig/vectors/reports/recursive-product-20260918/pie-scale-study-20261001/pie-scale.csv",
+      "expected_proof_sha256": "23ef11f1f7bbf0b31d6ede197bd67d2548975b951283c4cedc0fb6148e443af9"
+    },
+    {
+      "id": "pie:15588777_15588780",
+      "family": "pie",
+      "kind": "cairo_proof",
+      "description": "four-block high-step mix",
+      "blocks": [
+        15588777,
+        15588780
+      ],
+      "os_steps": 33679033,
+      "input": {
+        "path": "15588777_15588780.cpi",
+        "sha256": "1509610daab8281002aff83d052cf311d1753952d9f45cf92a3f6380bbe795f6",
+        "bytes": 662633424
+      },
+      "historical_h200": {
+        "adapted_to_publication_s": 10.599,
+        "whole_device_peak_bytes": 134057885696,
+        "planned_arena_bytes": 132228586352
+      },
+      "source": "stwo-zig/vectors/reports/recursive-product-20260918/pie-scale-study-20261001/pie-scale.csv",
+      "expected_proof_sha256": "8f24b5a15dceb4c1b850c39e9fb699acf9e1ddcecac2fc993960ce783c8ca310"
+    },
+    {
+      "id": "pie:15591789_15591789",
+      "family": "pie",
+      "kind": "cairo_proof",
+      "description": "one-block high EC and near-capacity memory",
+      "blocks": [
+        15591789,
+        15591789
+      ],
+      "os_steps": 25379487,
+      "input": {
+        "path": "15591789_15591789.cpi",
+        "sha256": "27eb79aaf71292a47310292892119940f65258fb8ae4790b64dea51eed92c4e9",
+        "bytes": 494945496
+      },
+      "historical_h200": {
+        "adapted_to_publication_s": 11.512,
+        "whole_device_peak_bytes": 145882021888,
+        "planned_arena_bytes": 144048695028
+      },
+      "source": "stwo-zig/vectors/reports/recursive-product-20260918/pie-scale-study-20261001/pie-scale.csv",
+      "expected_proof_sha256": "3c39b6f0a59aec76ccc5c215a2530905a0617306260e3590284f11931578151a"
+    },
+    {
+      "id": "recursion:two-leaf-wrap-fold",
+      "family": "recursion",
+      "kind": "fold_root",
+      "metric": "process_wall_s",
+      "description": "one root fold over two distinct verified circuit leaves",
+      "inputs": [
+        {
+          "path": "15627902-15627904.leaf.json",
+          "sha256": "dcf3ed4214790cfef602766f4edbfbaa03dab2fa05ebc3fba88d082f566677d8",
+          "blocks": [
+            15627902,
+            15627904
+          ]
+        },
+        {
+          "path": "15627905-15627907.leaf.json",
+          "sha256": "7cda055e4bf0fcda6debab8c137aaa794176922ba4efb528994b1fd324aa22db",
+          "blocks": [
+            15627905,
+            15627907
+          ]
+        }
+      ],
+      "expected_root": {
+        "outputs_sha256": "abaefd94d716e2e4f07b5a2fcd521764e5d4c0f8dd04ec60e095bf74d0e1349b",
+        "packed_sha256": "72f17bf582e5438defd30e2f3c52f87ff47e5d6f0d1223b98d37bac8007c54a2",
+        "proof_sha256": "9093f941c4a9144fd653441c582cc0921bac8431df8df46bdd556b8e661af724"
+      },
+      "source": "stwo-zig/vectors/reports/recursive-product-20260918/cuda-resident-pipeline-h100-20261001/receipt.json"
+    },
+    {
+      "id": "recursion:eight-distinct-pie-fold",
+      "family": "recursion",
+      "kind": "fold_root",
+      "metric": "process_wall_s",
+      "description": "seven canonical folds over eight distinct state-continuous ten-block mainnet PIE leaves",
+      "inputs": [
+        {
+          "path": "_tree8_proofs/15578420_15578429.leaf.json",
+          "sha256": "3dbd9f3bef73c09eaac9dbacb49cac797f7ac234c1c91b0f1946f2363af9a487",
+          "blocks": [
+            15578420,
+            15578429
+          ],
+          "os_steps": 1696395
+        },
+        {
+          "path": "_tree8_proofs/15578430_15578439.leaf.json",
+          "sha256": "ed55bd2dd0633fed525b94bf0e29da3323a889ae3a82ddb41aee5ee08eccfc57",
+          "blocks": [
+            15578430,
+            15578439
+          ],
+          "os_steps": 1084925
+        },
+        {
+          "path": "_tree8_proofs/15578440_15578449.leaf.json",
+          "sha256": "f653ec08f72b19d3f6f1a784de4fd127081e70f65acc14dd36e637022002d638",
+          "blocks": [
+            15578440,
+            15578449
+          ],
+          "os_steps": 4281672
+        },
+        {
+          "path": "_tree8_proofs/15578450_15578459.leaf.json",
+          "sha256": "25f8ffdcc7ea24226425eb692fe2e9e8f008a347dd3bd8b0ea3f53776169c7c0",
+          "blocks": [
+            15578450,
+            15578459
+          ],
+          "os_steps": 1383960
+        },
+        {
+          "path": "_tree8_proofs/15578460_15578469.leaf.json",
+          "sha256": "54bddf55e9398d5141d6dc56aaa25657c565ea18bfa878ba98b7852d91cbbc49",
+          "blocks": [
+            15578460,
+            15578469
+          ],
+          "os_steps": 2932460
+        },
+        {
+          "path": "_tree8_proofs/15578470_15578479.leaf.json",
+          "sha256": "d68a216c6100bd82a5625725cb0c5f6bc02a0fa2c09c2c65adb8d38ba2863008",
+          "blocks": [
+            15578470,
+            15578479
+          ],
+          "os_steps": 2087273
+        },
+        {
+          "path": "_tree8_proofs/15578480_15578489.leaf.json",
+          "sha256": "c38f25606c7c439d4d4328b6b9918bca5c5c317a7abc4c2c66f39e6cd5ee2d33",
+          "blocks": [
+            15578480,
+            15578489
+          ],
+          "os_steps": 1785786
+        },
+        {
+          "path": "_tree8_proofs/15578490_15578499.leaf.json",
+          "sha256": "e8095e9b7f8585d90a04dfcad757f2c1530b787bb55a5e8782091673da03d344",
+          "blocks": [
+            15578490,
+            15578499
+          ],
+          "os_steps": 1693807
+        }
+      ],
+      "expected_root": {
+        "proof_sha256": "053157c56469b3c452435ca9b0569979e928405c130928b8b76b49fbbe2646a9",
+        "outputs_sha256": "5f88063eb7054713e3ee24507b239d972c668a781b99d067fa3b4f0e12fd968d",
+        "packed_sha256": "deb27b33f0057f9cd4cff1ae9eea782d588b3c4a7babce4551fe3a6f043786b4"
+      },
+      "source": "fixtures/tree8-provenance.json"
+    },
+    {
+      "id": "pipeline:two-leaf-root",
+      "family": "pipeline",
+      "kind": "full_pipeline",
+      "metric": "adapted_input_to_root_wall_s",
+      "description": "both Cairo proofs, wraps, and one root publication",
+      "input_ids": [
+        "pipeline:two-leaf-root"
+      ],
+      "inputs": [
+        {
+          "path": "15627902-15627904.prover_input.cpi",
+          "sha256": "c92a1ecd5baf8651e88c6d96f016cfa2646bbda2cf646fec9bc0558c200a6f81",
+          "preimage_path": "15627902-15627904.preimage.hex.json",
+          "preimage_sha256": "6ba24d85781e221b35fda38e3550e7107a3202952f61c3ff2696a761106e5de8",
+          "blocks": [
+            15627902,
+            15627904
+          ],
+          "os_steps": 1224007
+        },
+        {
+          "path": "15627905-15627907.prover_input.cpi",
+          "sha256": "3c898538af071069385e5deae70a086a31e8ab87198fa198cd6fcf0f3e3d1557",
+          "preimage_path": "15627905-15627907.preimage.hex.json",
+          "preimage_sha256": "de65c3023ea4c6aecf03fe57de44ebf627a8d0cc47663b24e555013cb7199251",
+          "blocks": [
+            15627905,
+            15627907
+          ],
+          "os_steps": 785807
+        }
+      ],
+      "expected_root": {
+        "outputs_sha256": "abaefd94d716e2e4f07b5a2fcd521764e5d4c0f8dd04ec60e095bf74d0e1349b",
+        "packed_sha256": "72f17bf582e5438defd30e2f3c52f87ff47e5d6f0d1223b98d37bac8007c54a2",
+        "proof_sha256": "9093f941c4a9144fd653441c582cc0921bac8431df8df46bdd556b8e661af724"
+      },
+      "source": "stwo-zig/vectors/reports/recursive-product-20260918/cuda-ingress-tree-scaling-h200-20261001/receipts/compact-input-a.json",
+      "mode": "serial"
+    },
+    {
+      "id": "pipeline:two-leaf-batch-integrated",
+      "family": "pipeline",
+      "kind": "full_pipeline",
+      "metric": "adapted_input_to_root_wall_s",
+      "description": "two Cairo proofs, wraps, and canonical root in one resident CUDA process",
+      "input_ids": [
+        "pipeline:two-leaf-root"
+      ],
+      "inputs": [
+        {
+          "path": "15627902-15627904.prover_input.cpi",
+          "sha256": "c92a1ecd5baf8651e88c6d96f016cfa2646bbda2cf646fec9bc0558c200a6f81",
+          "preimage_path": "15627902-15627904.preimage.hex.json",
+          "preimage_sha256": "6ba24d85781e221b35fda38e3550e7107a3202952f61c3ff2696a761106e5de8",
+          "blocks": [
+            15627902,
+            15627904
+          ],
+          "os_steps": 1224007
+        },
+        {
+          "path": "15627905-15627907.prover_input.cpi",
+          "sha256": "3c898538af071069385e5deae70a086a31e8ab87198fa198cd6fcf0f3e3d1557",
+          "preimage_path": "15627905-15627907.preimage.hex.json",
+          "preimage_sha256": "de65c3023ea4c6aecf03fe57de44ebf627a8d0cc47663b24e555013cb7199251",
+          "blocks": [
+            15627905,
+            15627907
+          ],
+          "os_steps": 785807
+        }
+      ],
+      "expected_root": {
+        "outputs_sha256": "abaefd94d716e2e4f07b5a2fcd521764e5d4c0f8dd04ec60e095bf74d0e1349b",
+        "packed_sha256": "72f17bf582e5438defd30e2f3c52f87ff47e5d6f0d1223b98d37bac8007c54a2",
+        "proof_sha256": "9093f941c4a9144fd653441c582cc0921bac8431df8df46bdd556b8e661af724"
+      },
+      "source": "stwo-zig/vectors/reports/recursive-product-20260918/cuda-ingress-tree-scaling-h200-20261001/receipts/compact-input-a.json",
+      "mode": "batch_integrated"
+    }
+  ],
+  "note": "Historical measurements are diagnostics only. H200 judge must freshly calibrate paired baseline before ranking."
+}

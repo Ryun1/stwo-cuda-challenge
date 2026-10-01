@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 2,
+  "name": "stwo-cuda-h200-pie-recursion",
+  "contractEpoch": "h200-v1",
+  "sourceRepository": "https://github.com/teddyjfpender/stwo-zig.git",
+  "sourceCommit": "b2873365dc28ed4bc4b27de10e01ea0beeef7c93",
+  "editablePaths": [
+    "src/backends/cuda",
+    "src/integrations/cairo_cuda",
+    "src/integrations/circuit_cuda",
+    "src/products/cairo_cuda",
+    "src/products/circuit_recursion_cuda"
+  ],
+  "fixtureManifest": "fixtures/public-v1.json",
+  "hardware": {
+    "gpu": "NVIDIA H200 SXM",
+    "gpuCount": 1,
+    "exclusive": true,
+    "deviceBytes": 150754820096,
+    "reserveBytes": 6000000000
+  },
+  "security": {
+    "friQueries": 70,
+    "queryPowBits": 26,
+    "interactionPowBits": 24,
+    "preprocessedVariant": "canonical"
+  },
+  "tracks": [
+    {
+      "name": "latency",
+      "description": "Minimize judge-timed adapted-input-to-publication latency across the fixed PIE and recursion basket.",
+      "category": "cuda",
+      "direction": "+",
+      "editablePaths": ["candidate"],
+      "setupCommand": ["bash", "-lc", "./setup.sh"],
+      "benchmarkCommand": ["bash", "-lc", "./benchmark.sh --track latency"],
+      "scorePath": "score-latency.json",
+      "minScoreImprovementBips": 100,
+      "runner": {"provider": "github-actions", "workflow": "h200-rank.yml"}
+    },
+    {
+      "name": "memory",
+      "description": "Minimize independently sampled whole-device peak memory with a latency guard.",
+      "category": "cuda",
+      "direction": "+",
+      "editablePaths": ["candidate"],
+      "setupCommand": ["bash", "-lc", "./setup.sh"],
+      "benchmarkCommand": ["bash", "-lc", "./benchmark.sh --track memory"],
+      "scorePath": "score-memory.json",
+      "minScoreImprovementBips": 100,
+      "runner": {"provider": "github-actions", "workflow": "h200-rank.yml"}
+    },
+    {
+      "name": "balanced",
+      "description": "Minimize normalized latency times peak memory with explicit per-case guards.",
+      "category": "cuda",
+      "direction": "+",
+      "editablePaths": ["candidate"],
+      "setupCommand": ["bash", "-lc", "./setup.sh"],
+      "benchmarkCommand": ["bash", "-lc", "./benchmark.sh --track balanced"],
+      "scorePath": "score-balanced.json",
+      "minScoreImprovementBips": 100,
+      "runner": {"provider": "github-actions", "workflow": "h200-rank.yml"}
+    }
+  ]
+}

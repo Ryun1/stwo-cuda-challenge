@@ -1,0 +1,7 @@
+.cache/
+.runs/
+artifacts/
+workspace/
+__pycache__/
+*.pyc
+score-*.json
