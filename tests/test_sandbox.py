@@ -5,12 +5,21 @@ import unittest
 
 from harness.sandbox import (RUNTIME_FILES, case_file, docker_command,
                              stage_inputs, stage_runtime)
+from harness.output_quota import CASE_OUTPUT_BYTES, CaseOutputVolume
 
 
 IMAGE = "sha256:" + "a" * 64
 
 
 class SandboxTests(unittest.TestCase):
+    def test_output_quota_requires_a_fixed_usable_capacity(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "case"
+            self.assertEqual(CaseOutputVolume(path).capacity_bytes, CASE_OUTPUT_BYTES)
+            for capacity in (0, 4096, 32 * 1024**2 - 4096, 32 * 1024**2 + 1):
+                with self.assertRaises(ValueError):
+                    CaseOutputVolume(path, capacity_bytes=capacity)
+
     def test_case_staging_and_launch_expose_only_required_files(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

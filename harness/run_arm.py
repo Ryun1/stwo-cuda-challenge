@@ -20,6 +20,7 @@ sys.path.insert(0, str(ROOT))
 from harness.sandbox import (CONTAINER_INPUTS, CONTAINER_SOURCE, CONTAINER_WORK, IMAGE,
                              case_file as case_file_for_container,
                              docker_command, stage_inputs, stage_runtime)
+from harness.output_quota import CaseOutputVolume
 
 RUNTIME_ENV = frozenset({
     "PATH", "LD_LIBRARY_PATH", "LANG", "LC_ALL", "TZ",
@@ -305,14 +306,16 @@ def main() -> None:
         return
     nvml = Nvml(config["hardware"]["deviceBytes"])
     rows = []
+    volumes = []
     env = candidate_env(os.environ, args.preprocessed, args.artifact_dir)
     args.out.mkdir(parents=True, exist_ok=True)
     try:
         runtime = stage_runtime(source, args.out / "_runtime")
         for case in cases:
             case_dir = args.out / case["id"].replace(":", "_")
-            case_dir.mkdir(mode=0o777)
-            case_dir.chmod(0o777)
+            volume = CaseOutputVolume(case_dir)
+            case_dir = volume.open()
+            volumes.append(volume)
             scratch = case_dir / "run"
             scratch.mkdir(mode=0o777)
             scratch.chmod(0o777)
@@ -458,10 +461,14 @@ def main() -> None:
                     raise RuntimeError(f"unknown pipeline mode: {case.get('mode')}")
             row = {"case_id": case["id"], "round": args.round, "time_s": measured["time_s"],
                    "peak_device_bytes": measured["peak_device_bytes"], **flags(plan)}
+            volume.close()
+            volumes.remove(volume)
             rows.append(row)
             (args.out / "arm.json").write_text(json.dumps(rows, indent=2) + "\n")
             print(f"{case['id']}: {row['time_s']:.3f}s, {row['peak_device_bytes']} bytes", flush=True)
     finally:
+        for volume in reversed(volumes):
+            volume.close()
         shutil.rmtree(args.out / "_case_inputs", ignore_errors=True)
         shutil.rmtree(args.out / "_runtime", ignore_errors=True)
         nvml.close()

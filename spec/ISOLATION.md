@@ -31,10 +31,14 @@ retains the container ID and forcibly removes it on timeout.
 Use a distinct unprivileged identity and a filesystem/mount namespace, or an
 equivalently restrictive GPU container, for candidate code. The remaining
 H200 qualification must check GPU device permissions, CUDA runtime libraries,
-read-only asset use, output directory ownership, and a host-side output quota.
+read-only asset use, output directory ownership, and the host-side output quota.
 The 900-second process timeout, 1 GiB per-file limit, and disabled core dumps
-are implemented, but the total output quota must be
-enforced on the runner's writable volume before activation. The same boundary
+are implemented. The writable case directory now sits on a fresh fixed-size
+2 GiB ext4 loopback filesystem, with its image outside candidate mounts.
+Its fixed filesystem capacity bounds the total of all proof files, reports,
+logs, and scratch files. The judge copies retained outputs after the candidate
+exits, preserves links as links, and removes the mount and image. The actual
+Linux runner must pass a forced-ENOSPC probe before activation. The same boundary
 applies to participant-supplied fast-screening
 artifacts if that optional tier is ever enabled; such artifacts remain
 untrusted and cannot produce ranked receipts.
@@ -43,11 +47,13 @@ Run `python3 scripts/probe_sandbox.py --image "$STWO_SANDBOX_IMAGE"` on the
 Linux runner. Its CPU probe checks the actual Docker mounts, UID, private PID
 namespace, hidden judge sentinel and sibling input, absent service token and
 Docker socket, blocked outbound network, read-only input and preprocessing
-asset, and writable case output. A separate manually dispatched
+asset, writable case output, and a 64 MiB output volume rejecting a larger
+write with ENOSPC. A separate manually dispatched
 `sandbox-probe.yml` workflow runs the same probe on a hosted Linux CPU using a
 disposable Ubuntu base image; it does not qualify NVIDIA access or the
 production image. The first hosted [CPU probe run](https://github.com/teddyjfpender/stwo-cuda-challenge/actions/runs/36921996231)
-passed all ten checks on Linux as UID 65532. On the H200, also try to access another GPU. Every denied
+passed the original ten checks on Linux as UID 65532; rerun it for the new quota
+check. On the H200, also try to access another GPU. Every denied
 attempt must fail. Then run the pinned baseline proof for one PIE,
 one fold, and one full pipeline case inside the boundary, and require the
 same independently verified proof bytes as the unsandboxed baseline. Record

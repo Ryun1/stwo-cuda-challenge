@@ -12,11 +12,12 @@ from types import SimpleNamespace
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from harness.run_arm import run
+from harness.output_quota import CaseOutputVolume
 from harness.sandbox import docker_command, stage_inputs
 
 
 PROBE = r"""
-import json, os, pathlib, socket, sys, time
+import errno, json, os, pathlib, socket, sys, time
 sys.path.insert(0, '/judge')
 import harness.run_pipeline
 
@@ -36,6 +37,16 @@ except OSError:
 
 output = pathlib.Path('/work/probe-output.txt')
 output.write_text('published')
+quota_enforced = False
+quota_file = pathlib.Path('/work/quota-probe.bin')
+try:
+    with quota_file.open('wb') as handle:
+        for _ in range(96):
+            handle.write(b'X' * (1 << 20))
+except OSError as error:
+    quota_enforced = error.errno == errno.ENOSPC
+finally:
+    quota_file.unlink(missing_ok=True)
 time.sleep(.05)
 print(json.dumps({
     'uid': os.getuid(),
@@ -49,6 +60,7 @@ print(json.dumps({
     'judge_sentinel_hidden': not pathlib.Path(sys.argv[1]).exists(),
     'private_pid_namespace': b'python3' in pathlib.Path('/proc/1/cmdline').read_bytes(),
     'output_published': output.read_text() == 'published',
+    'quota_enforced': quota_enforced,
 }))
 """
 
@@ -76,9 +88,8 @@ def probe(image: str) -> dict:
         import hashlib
         staged = stage_inputs(root / "staged", [
             (current, "current.cpi", hashlib.sha256(current.read_bytes()).hexdigest())])
-        case = root / "case"
-        case.mkdir(mode=0o777)
-        case.chmod(0o777)
+        volume = CaseOutputVolume(root / "case", capacity_bytes=64 * 1024**2)
+        case = volume.open()
         scratch = case / "run"
         scratch.mkdir(mode=0o777)
         scratch.chmod(0o777)
@@ -94,7 +105,10 @@ def probe(image: str) -> dict:
         command = docker_command(image, runtime, staged, case, preprocessed, artifacts,
                                  ["python3", "-c", PROBE, str(sentinel)],
                                  {"GH_TOKEN": "must-not-enter-container"}, gpu=False)
-        run(command, root / "judge-logs", FakeNvml(), {}, timeout=30, container=True)
+        try:
+            run(command, root / "judge-logs", FakeNvml(), {}, timeout=30, container=True)
+        finally:
+            volume.close()
         lines = (root / "judge-logs/process.log").read_text().splitlines()
         records = [json.loads(line) for line in lines if line.startswith("{")]
         if len(records) != 1:
@@ -103,7 +117,7 @@ def probe(image: str) -> dict:
         expected_fields = {"current_input", "sibling_hidden", "fixture_readonly",
                            "asset_readonly", "network_blocked", "token_hidden",
                            "docker_socket_hidden", "judge_sentinel_hidden",
-                           "private_pid_namespace", "output_published"}
+                           "private_pid_namespace", "output_published", "quota_enforced"}
         if (set(result) != expected_fields | {"uid"} or result.get("uid") != 65532 or
                 any(result[key] is not True for key in expected_fields)):
             raise RuntimeError(f"sandbox access policy failed: {result}")

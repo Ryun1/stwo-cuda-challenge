@@ -12,7 +12,9 @@ fixture transfers, and hash checks happen before its timed proof work.
    Install Zig 0.15.2, CUDA/nvcc, Cargo, `nightly-2026-01-15`, Git LFS,
    OpenSSL with Ed25519 support, Docker Engine, the
    [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html),
-   and the GitHub CLI. Keep service state,
+   GitHub CLI, `e2fsprogs`, and `util-linux`. The judge process must run as
+   root or have passwordless `sudo` for mounting, unmounting, and chmod on its
+   own 2 GiB per-case ext4 output images. Keep service state,
    private fixtures, credentials, and the
    2 GiB canonical preprocessing asset outside this repository.
 2. Clone the challenge, then run `git lfs pull`, `./setup.sh --build`, and
