@@ -40,6 +40,7 @@ def main() -> None:
     parser.add_argument("--oracle", type=Path, help="pinned stwo-circuit-oracle binary")
     parser.add_argument("--proving-root", type=Path, help="proving@5a7c5ed checkout")
     parser.add_argument("--cpu-recursion-prover", type=Path, help="produce the pinned two- and eight-leaf fixtures")
+    parser.add_argument("--rust-reducer", type=Path, help="check eight-leaf root against pinned Rust reducer")
     parser.add_argument("--out", type=Path, required=True, help="fixture store outside Git")
     parser.add_argument("--verify-only", action="store_true", help="check existing bytes, no downloads")
     args = parser.parse_args()
@@ -108,6 +109,11 @@ def main() -> None:
         fold = next(case for case in manifest["cases"] if case["id"] == "recursion:two-leaf-wrap-fold")
         for item in fold["inputs"]:
             put_checked(result / item["path"], out / item["path"], item["sha256"])
+        two_root = json.loads((result / "receipt.json").read_text())["root"]
+        for key, item in (("proof_sha256", "proof"), ("outputs_sha256", "outputs"),
+                          ("packed_sha256", "packed")):
+            if two_root[item]["sha256"] != fold["expected_root"][key]:
+                raise ValueError(f"two-leaf root {key} differs from manifest")
         tree = next(case for case in manifest["cases"] if case["id"] == "recursion:eight-distinct-pie-fold")
         tree_names = [Path(item["path"]).name.removesuffix(".leaf.json") for item in tree["inputs"]]
         tree_downloads = out / "_tree8_downloads"
@@ -117,10 +123,16 @@ def main() -> None:
              "--manifest", str(tree_downloads / "manifest.json"),
              "--oracle", str(args.oracle), "--proving-root", str(args.proving_root),
              "--out", str(out / "_tree8_adapted")])
-        run(["python3", str(ROOT / "scripts/build_tree8_fixture.py"),
-             "--source", str(source), "--fixtures", str(out),
-             "--prover", str(args.cpu_recursion_prover),
-             "--oracle", str(args.oracle), "--proving-root", str(args.proving_root)])
+        tree_command = ["python3", str(ROOT / "scripts/build_tree8_fixture.py"),
+                        "--source", str(source), "--fixtures", str(out),
+                        "--prover", str(args.cpu_recursion_prover),
+                        "--oracle", str(args.oracle), "--proving-root", str(args.proving_root)]
+        if args.rust_reducer:
+            tree_command.extend(["--rust-reducer", str(args.rust_reducer)])
+        run(tree_command)
+        tree_root = json.loads((out / "_tree8_proofs/receipt.json").read_text())["root"]
+        if tree_root != tree["expected_root"]:
+            raise ValueError("eight-leaf root differs from manifest")
     for case in manifest["cases"]:
         items = [case["input"]] if case["family"] == "pie" else case["inputs"]
         for item in items:

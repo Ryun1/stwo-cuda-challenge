@@ -88,7 +88,9 @@ requires the canonical proof SHA-256 to match a pinned reference for every
 case; all three qualified backends previously produced identical protocol
 bytes. A recursive root is verified against the pinned recursion protocol and
 expected leaf sequence, state-root continuity, outputs, and packed tree; its
-proof bytes likewise match the pinned Rust-qualified reference. A future epoch
+proof bytes likewise match the pinned reference. The eight-leaf CPU root now
+matches the pinned Rust reducer byte for byte; CUDA parity still requires an
+H200 activation run before this basket can be ranked. A future epoch
 may relax byte identity after a verifier can independently bind all expected
 public statements. A candidate cannot substitute
 precomputed proofs for hidden inputs: the judge chooses a private, hash-pinned

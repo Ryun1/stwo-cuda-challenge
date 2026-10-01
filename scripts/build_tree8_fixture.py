@@ -34,6 +34,7 @@ def main() -> None:
     parser.add_argument("--prover", type=Path, help="built pinned-main CPU recursion prover")
     parser.add_argument("--oracle", type=Path, help="pinned Rust adaptation oracle, if JSON needs generation")
     parser.add_argument("--proving-root", type=Path, help="pinned proving@5a7c5ed checkout")
+    parser.add_argument("--rust-reducer", type=Path, help="independently prove and compare the full tree in Rust")
     args = parser.parse_args()
     source = args.source.resolve()
     fixtures = args.fixtures.resolve()
@@ -133,6 +134,26 @@ def main() -> None:
         "root": {"proof_sha256": digest(proof), "outputs_sha256": digest(outputs),
                  "packed_sha256": digest(packed)},
     }
+    if args.rust_reducer:
+        rust_proof = out / "rust_root.proof"
+        rust_outputs = out / "rust_root_outputs.json"
+        rust_packed = out / "rust_root_packed.json"
+        if not all(path.is_file() for path in (rust_proof, rust_outputs, rust_packed)):
+            run([str(args.rust_reducer), "--program_input", str(tree_manifest),
+                 "--circuit_registry_json", str(registry), "--proof_path", str(rust_proof),
+                 "--program_output", str(rust_outputs), "--packed_output_path", str(rust_packed)],
+                out / "rust_fold.log")
+        rust_hashes = {"proof_sha256": digest(rust_proof),
+                       "outputs_sha256": digest(rust_outputs),
+                       "packed_sha256": digest(rust_packed)}
+        if rust_hashes != receipt["root"]:
+            raise ValueError(f"Rust reducer differs from Zig tree root: {rust_hashes}")
+        receipt["rust_reducer_parity"] = {
+            "matched": True,
+            "proving_source_commit": "5a7c5ede4299c91a61df19a07cba4f7502c14230",
+            "reducer_binary_sha256": digest(args.rust_reducer),
+            "root": rust_hashes,
+        }
     (out / "receipt.json").write_text(json.dumps(receipt, indent=2) + "\n")
     print(f"eight-leaf root: {receipt['root']['proof_sha256']}")
 

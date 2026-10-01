@@ -39,9 +39,12 @@ def check_patch(patch: Path, workspace: Path, config: dict,
     if not paths or len(paths) != len(set(paths)):
         raise ValueError("patch must change unique allowed paths")
     summary = subprocess.check_output(["git", "apply", "--summary", str(patch)], text=True)
-    if ("mode change" in summary or "create mode 120000" in summary or
-            "create mode 100755" in summary or "rename " in summary):
-        raise ValueError("mode changes, symlinks, executables, and renames are not allowed")
+    for line in summary.splitlines():
+        detail = line.strip()
+        if detail.startswith(("mode change", "rename", "copy")):
+            raise ValueError("mode changes, renames, and copies are not allowed")
+        if detail.startswith(("create mode ", "delete mode ")) and detail.split()[2] != "100644":
+            raise ValueError("only regular non-executable source files are allowed")
     head = subprocess.check_output(["git", "-C", str(workspace), "rev-parse", "HEAD"], text=True).strip()
     if head != config["sourceCommit"]:
         raise ValueError(f"workspace is not pinned source commit {config['sourceCommit']}")

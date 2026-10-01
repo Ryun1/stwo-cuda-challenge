@@ -86,11 +86,24 @@ cairo-preprocessed-export -Doptimize=ReleaseFast` followed by
 canonical`. Keep the 2 GiB asset outside Git.
 
 The service/runner design, cache keys, artifact policy, isolation, and H200
-budget controls are in [spec/JUDGE.md](spec/JUDGE.md). A real H200 deployment
-requires its fixture object store, verifier binaries, self-hosted runner, and
-operator secrets; these are intentionally outside Git. Until those are wired,
-the local scorer and contract tests are usable, but this repository does not
-claim to operate a live ranking service.
+budget controls are in [spec/JUDGE.md](spec/JUDGE.md). The CPU-only intake
+prototype is runnable locally:
+
+```sh
+python3 service/intake.py --source workspace/baseline \
+  --state ../stwo-cuda-challenge-state --token-file /secure/path/intake-token
+python3 service/build_worker.py --source workspace/baseline \
+  --state ../stwo-cuda-challenge-state --submission-id ID
+```
+
+`POST /submissions` takes `{"repository":"https://github.com/OWNER/FORK",
+"commit":"FULL_SHA"}` and an optional `artifact_sha256`. It returns a job ID
+after patch validation, without building or reserving the H200. The worker
+rebuilds ranked binaries from source; uploaded artifacts are stored for future
+untrusted fast screening only. A real H200 deployment requires a fixture
+object store, verifier binaries, self-hosted runner, isolation, receipt
+signing, rate limits, and operator secrets outside Git. This repo does not
+claim to operate a live public ranking service yet.
 
 Discussion prompts and the planned GitHub Discussions categories are in
 [spec/DISCUSSIONS.md](spec/DISCUSSIONS.md). No benchmark source, proof blob,

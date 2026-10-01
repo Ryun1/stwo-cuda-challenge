@@ -23,6 +23,18 @@ jobs:
     runs-on: [self-hosted, h200-stwo-challenge]
     timeout-minutes: 90
     if: github.ref == 'refs/heads/main'
+    env:
+      SUBMISSION_ID: ${{ inputs.submission_id }}
+      TIER: ${{ inputs.tier }}
+      TRACK: ${{ inputs.track }}
+      FIXTURE_ROOT: ${{ vars.STWO_FIXTURE_ROOT }}
+      BASELINE_ROOT: ${{ vars.STWO_BASELINE_ROOT }}
+      SUBMISSION_STATE: ${{ vars.STWO_SUBMISSION_STATE }}
+      PREPROCESSED_ASSET: ${{ vars.STWO_PREPROCESSED_ASSET }}
+      CUDA_ARTIFACT_DIR: ${{ vars.STWO_CUDA_ARTIFACT_DIR }}
+      CAIRO_VERIFIER: ${{ vars.STWO_CAIRO_VERIFIER }}
+      RANKED_MANIFEST: ${{ vars.STWO_RANKED_MANIFEST }}
+      RUN_DIR: .runs/${{ inputs.submission_id }}-${{ github.run_id }}-${{ github.run_attempt }}
     concurrency:
       group: stwo-h200-exclusive
       cancel-in-progress: false
@@ -32,39 +44,35 @@ jobs:
           ref: main
           persist-credentials: false
       - name: Validate source and run trusted judge
-        env:
-          SUBMISSION_ID: ${{ inputs.submission_id }}
-          TIER: ${{ inputs.tier }}
-          TRACK: ${{ inputs.track }}
-          FIXTURE_ROOT: ${{ vars.STWO_FIXTURE_ROOT }}
-          BASELINE_ROOT: ${{ vars.STWO_BASELINE_ROOT }}
-          SUBMISSION_ROOT: ${{ vars.STWO_SUBMISSION_ROOT }}
-          PREPROCESSED_ASSET: ${{ vars.STWO_PREPROCESSED_ASSET }}
-          CUDA_ARTIFACT_DIR: ${{ vars.STWO_CUDA_ARTIFACT_DIR }}
-          CAIRO_VERIFIER: ${{ vars.STWO_CAIRO_VERIFIER }}
-          RANKED_MANIFEST: ${{ vars.STWO_RANKED_MANIFEST }}
+        id: judge
         run: |
           [[ "$SUBMISSION_ID" =~ ^[A-Za-z0-9-]+$ ]]
           python3 harness/check_contract.py
           ./benchmark.sh --tier "$TIER" --track "$TRACK" \
             --baseline-source "$BASELINE_ROOT/source" \
-            --candidate-source "$SUBMISSION_ROOT/$SUBMISSION_ID/source" \
-            --candidate-patch "$SUBMISSION_ROOT/$SUBMISSION_ID/changes.patch" \
+            --candidate-source "$SUBMISSION_STATE/jobs/$SUBMISSION_ID/source" \
+            --candidate-patch "$SUBMISSION_STATE/jobs/$SUBMISSION_ID/changes.patch" \
             --baseline-attestation "$BASELINE_ROOT/build-attestation.json" \
-            --candidate-attestation "$SUBMISSION_ROOT/$SUBMISSION_ID/build-attestation.json" \
+            --candidate-attestation "$SUBMISSION_STATE/jobs/$SUBMISSION_ID/build-attestation.json" \
             --fixtures "$FIXTURE_ROOT" \
             --preprocessed "$PREPROCESSED_ASSET" \
             --artifact-dir "$CUDA_ARTIFACT_DIR" \
             --cairo-verifier "$CAIRO_VERIFIER" \
             --manifest "$RANKED_MANIFEST" \
-            --out ".runs/$SUBMISSION_ID"
+            --out "$RUN_DIR"
+      - name: Publish redacted receipt
+        if: always() && steps.judge.outcome != 'skipped'
+        run: |
+          python3 service/publish_receipt.py \
+            --state "$SUBMISSION_STATE" --source "$BASELINE_ROOT/source" \
+            --submission-id "$SUBMISSION_ID" --run-dir "$RUN_DIR" --tier "$TIER"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: h200-${{ inputs.submission_id }}-${{ inputs.tier }}
           path: |
-            .runs/${{ inputs.submission_id }}/evidence.json
-            .runs/${{ inputs.submission_id }}/scorecard.json
-            .runs/${{ inputs.submission_id }}/**/measurement.json
-            .runs/${{ inputs.submission_id }}/**/arm.json
+            ${{ env.RUN_DIR }}/evidence.json
+            ${{ env.RUN_DIR }}/scorecard.json
+            ${{ env.RUN_DIR }}/**/measurement.json
+            ${{ env.RUN_DIR }}/**/arm.json
           if-no-files-found: warn

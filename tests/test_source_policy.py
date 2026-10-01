@@ -64,6 +64,29 @@ class SourcePolicyTests(unittest.TestCase):
                                           "editablePaths": ["src/backends/cuda"]},
                             already_applied=True)
 
+    def test_patch_rejects_symlink_even_inside_cuda_prefix(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = root / "source"
+            repo.mkdir()
+            subprocess.run(["git", "init", "-q", str(repo)], check=True)
+            source = repo / "src/backends/cuda/base.zig"
+            source.parent.mkdir(parents=True)
+            source.write_text("base\n")
+            subprocess.run(["git", "-C", str(repo), "add", "."], check=True)
+            subprocess.run(["git", "-C", str(repo), "-c", "user.name=Test",
+                            "-c", "user.email=test@example.com", "commit", "-qm", "base"], check=True)
+            commit = subprocess.check_output(["git", "-C", str(repo), "rev-parse", "HEAD"], text=True).strip()
+            (repo / "src/backends/cuda/link").symlink_to("base.zig")
+            subprocess.run(["git", "-C", str(repo), "add", "-N", "src/backends/cuda/link"], check=True)
+            patch = root / "link.patch"
+            patch.write_bytes(subprocess.check_output(["git", "-C", str(repo),
+                                                       "diff", "--binary", "HEAD"]))
+            with self.assertRaises(ValueError):
+                check_patch(patch, repo, {"sourceCommit": commit,
+                                          "editablePaths": ["src/backends/cuda"]},
+                            already_applied=True)
+
 
 if __name__ == "__main__":
     unittest.main()

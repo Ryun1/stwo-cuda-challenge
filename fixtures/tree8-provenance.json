@@ -145,5 +145,15 @@
     "proof_sha256": "053157c56469b3c452435ca9b0569979e928405c130928b8b76b49fbbe2646a9",
     "outputs_sha256": "5f88063eb7054713e3ee24507b239d972c668a781b99d067fa3b4f0e12fd968d",
     "packed_sha256": "deb27b33f0057f9cd4cff1ae9eea782d588b3c4a7babce4551fe3a6f043786b4"
+  },
+  "rust_reducer_parity": {
+    "matched": true,
+    "proving_source_commit": "5a7c5ede4299c91a61df19a07cba4f7502c14230",
+    "reducer_binary_sha256": "6b152e82d1e521f92da10db4b2d1dcb337889de6ba111ea8e8c1a4bb4bd6edf3",
+    "root": {
+      "proof_sha256": "053157c56469b3c452435ca9b0569979e928405c130928b8b76b49fbbe2646a9",
+      "outputs_sha256": "5f88063eb7054713e3ee24507b239d972c668a781b99d067fa3b4f0e12fd968d",
+      "packed_sha256": "deb27b33f0057f9cd4cff1ae9eea782d588b3c4a7babce4551fe3a6f043786b4"
+    }
   }
 }

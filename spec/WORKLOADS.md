@@ -27,8 +27,10 @@ The second public case folds eight different ten-block PIEs spanning blocks
 adapted inputs, leaf proofs, and seven-fold root are hash-pinned in
 `fixtures/tree8-provenance.json`. A synthetic repeated-leaf tree is permitted
 only for smoke tests and cannot earn a score.
-The eight-leaf root was produced by the pinned `main` CPU prover; its CUDA
-byte-parity is a required H200 activation check, not a claimed measurement.
+The eight-leaf root was produced by the pinned `main` CPU prover and matched
+the pinned Rust reducer byte for byte for the proof, outputs, and packed tree.
+Its CUDA byte-parity is still a required H200 activation check, not a claimed
+measurement.
 
 The pipeline family runs from already adapted contiguous PIE inputs to one
 published recursive root, including Cairo proof publication, leaf wrapping,
