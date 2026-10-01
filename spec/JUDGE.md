@@ -72,3 +72,8 @@ runner and artifact store; verify sandbox isolation and cost limits; enable
 GitHub Discussions and the separate queue service. No cloud resources or
 credentials are embedded here. The workflow template stays manual until the
 operator connects the runner.
+
+`scripts/publish_public.py` produces a static content-addressed directory,
+and `scripts/fetch_public.py` verifies it against the committed manifest. The
+public bundle can be hosted without exposing the PIE API key. The local bundle
+alone is not a live public endpoint.

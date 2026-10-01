@@ -85,6 +85,22 @@ cairo-preprocessed-export -Doptimize=ReleaseFast` followed by
 `zig-out/bin/cairo-preprocessed-export /absolute/path/preprocessed-canonical.bin
 canonical`. Keep the 2 GiB asset outside Git.
 
+Participants do not need the PIE API key. The operator creates a static
+content-addressed bundle once, then hosts that directory over HTTPS:
+
+```sh
+python3 scripts/publish_public.py \
+  --source ../stwo-cuda-challenge-fixtures \
+  --out ../stwo-cuda-challenge-public-bundle
+python3 scripts/fetch_public.py \
+  --base https://your-fixture-host.example/challenge/h200-v1 \
+  --out ../stwo-cuda-challenge-fixtures
+```
+
+The downloader checks the committed manifest digest and every blob SHA-256.
+`--case-id` fetches only one case for a cheap smoke loop. The public bundle is
+prepared locally; its HTTPS hosting remains part of deployment.
+
 The service/runner design, cache keys, artifact policy, isolation, and H200
 budget controls are in [spec/JUDGE.md](spec/JUDGE.md). The CPU-only intake
 prototype is runnable locally:
