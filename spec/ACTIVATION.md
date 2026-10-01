@@ -22,6 +22,9 @@ variables are listed in `.github/workflows/h200-rank.yml`; do not put private
 paths, credentials, or holdout identifiers into this repository. The
 `service/dispatch.py --dry-run` command checks a trusted build and tier gates
 without reserving or launching a GPU job.
+`python3 service/activation.py --repository OWNER/REPO` checks the live GitHub
+runner and required variable names without displaying their values. A real
+`service/dispatch.py` call performs this check before creating a workflow run.
 
 Public release comes after these gates, with a reviewed contract epoch and a
 fresh baseline score. Existing historical timings in the prover repository

@@ -13,6 +13,7 @@ from service.intake import Handler, IntakeError, IntakeHTTPServer, Store, fetch_
 from service.build_worker import prepare
 from service.publish_receipt import publish
 from service.dispatch import dispatch
+from service.activation import REQUIRED_VARIABLES, check_activation
 from service.reconcile import reconcile, workflow_title
 
 
@@ -305,6 +306,25 @@ class IntakeTests(unittest.TestCase):
             qualified = dispatch(self.store, submission_id, "qualify", "balanced", "owner/repo",
                                  sender=sender)
         self.assertEqual(qualified["state"], "dispatched")
+
+    def test_activation_requires_judge_variables_and_idle_h200_runner(self):
+        workflow = (Path(__file__).resolve().parents[1] /
+                    ".github/workflows/h200-rank.yml").read_text()
+        self.assertTrue(all(f"vars.{name}" in workflow for name in REQUIRED_VARIABLES))
+        variables = {"total_count": len(REQUIRED_VARIABLES),
+                     "variables": [{"name": name, "value": "/configured"}
+                                   for name in REQUIRED_VARIABLES]}
+        offline = {"total_count": 1, "runners": [{"name": "h200", "status": "offline",
+                   "busy": False, "labels": [{"name": "self-hosted"},
+                                               {"name": "h200-stwo-challenge"}]}]}
+        with self.assertRaisesRegex(IntakeError, "judge variables are missing"):
+            check_activation("owner/repo", fetch=lambda _: (offline,
+                             {"total_count": 0, "variables": []}))
+        with self.assertRaisesRegex(IntakeError, "no idle online"):
+            check_activation("owner/repo", fetch=lambda _: (offline, variables))
+        offline["runners"][0]["status"] = "online"
+        self.assertEqual(check_activation("owner/repo", fetch=lambda _: (offline, variables))
+                         ["runner_count"], 1)
 
 
 if __name__ == "__main__":

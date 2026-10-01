@@ -18,12 +18,14 @@ results `untrusted-build`, and never rank or promote them. A source-only
 submission takes the normal path.
 
 The trusted build worker checks out the pinned source, applies the allowed patch,
-builds ReleaseFast CUDA products, runs focused source tests, and stores an
-artifact keyed by `(contract epoch, base commit, patch digest, toolchain,
-target SM, build flags)`. This runs on CPU capacity, not on the H200 clock.
-The H200 judge consumes only that immutable built artifact, selects its
-fixture set after source fixation, and performs the proof runs. A cache hit
-may skip recompilation only when **all** key fields match. The trusted
+builds ReleaseFast CUDA products, runs focused source tests, and records the
+binary hashes against the source commit, patch digest, and toolchain. This
+runs on CPU capacity, outside the H200 measurement clock. Intake deduplicates
+identical patches; the current worker does not yet share finished binaries
+across different submissions. A future trusted artifact cache may skip a build
+only when the epoch, source, patch, toolchain, target SM, and flags all match.
+The H200 judge uses only the trusted worker's attested binaries, selects its
+fixture set after source fixation, and performs the proof runs. The trusted
 verifier and score code are never built from participant source.
 
 The H200 service uses one job per exclusive device, an unprivileged uid,
@@ -66,6 +68,10 @@ Malformed or mismatched judge artifacts also fail the attempt and release its
 single-GPU queue slot.
 `service/dispatch.py` checks tier prerequisites and allows one active H200
 dispatch at a time before triggering the manual GitHub Actions workflow.
+It first checks that the GitHub repository has the required nonempty judge
+variables and an idle online runner with both `self-hosted` and
+`h200-stwo-challenge` labels. This prevents an unusable workflow from taking
+the single GPU queue slot.
 Each workflow run carries its immutable dispatcher attempt ID. Publication can
 only complete that exact active attempt; a delayed older run cannot update a
 retry. If a workflow is cancelled before the publication step, run

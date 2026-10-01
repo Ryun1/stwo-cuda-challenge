@@ -13,6 +13,7 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from harness.attestation import validate_record
+from service.activation import check_activation
 from service.intake import IntakeError, Store
 
 
@@ -88,6 +89,11 @@ def main() -> None:
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
     config = json.loads((ROOT / "benchmark.json").read_text())
+    if not args.dry_run:
+        try:
+            check_activation(args.repository)
+        except IntakeError as error:
+            parser.error(str(error))
     result = dispatch(Store(args.state, args.source, config), args.submission_id,
                       args.tier, args.track, args.repository,
                       max_active=args.max_active, dry_run=args.dry_run)
