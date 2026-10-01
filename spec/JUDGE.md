@@ -35,6 +35,15 @@ busy GPU. The judge's NVML monitor and wall clock run outside the candidate
 container/uid. Kill and discard the entire process group on timeout. The
 candidate subprocess receives only a fixed runtime environment allowlist and
 the three judge-owned CUDA asset settings, never the host's service tokens.
+Authenticated submission and artifact-upload requests are limited over a
+rolling 24-hour window in SQLite before the service fetches Git objects or
+accepts an upload. Live dispatch also requires an
+operator-chosen rolling GPU-minute budget and per-submitter-repository attempt
+budget. Each accepted attempt reserves the workflow's full 90-minute timeout;
+failed and cancelled attempts continue to count. This conservative accounting
+bounds worst-case spend without trusting a candidate timer. The shared intake
+token provides a global request limit; separate account identities and quotas
+would be needed before opening self-service submissions to multiple users.
 The exact file/device/network boundary and its required H200 probe are in
 [`ISOLATION.md`](ISOLATION.md). That boundary is an activation gate, not a
 claim that the current local prototype is already isolated.

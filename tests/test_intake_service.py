@@ -7,13 +7,14 @@ import tempfile
 import threading
 import unittest
 from unittest.mock import patch
+from urllib.error import HTTPError
 from urllib.request import ProxyHandler, Request, build_opener
 
 from service.intake import Handler, IntakeError, IntakeHTTPServer, Store, fetch_candidate
 from service.build_worker import prepare
 from service.publish_receipt import publish
 from service.receipt_signature import sign, verify
-from service.dispatch import dispatch
+from service.dispatch import WORKFLOW_TIMEOUT_MINUTES, dispatch
 from service.activation import REQUIRED_VARIABLES, check_activation
 from service.reconcile import reconcile, workflow_title
 
@@ -48,6 +49,7 @@ class IntakeTests(unittest.TestCase):
         self.fetcher = lambda _repo, _commit, _dir: (self.patch, b"Changed size.\n")
         self.store = Store(self.root / "state", self.source, self.config,
                            fetcher=self.fetcher)
+        Handler.max_requests_24h = 100
 
     def test_intake_deduplicates_patch_and_prepares_exact_source(self):
         first = self.store.submit(self.repository, self.commit)
@@ -97,6 +99,43 @@ class IntakeTests(unittest.TestCase):
                           headers={"Authorization": "Bearer " + "a" * 32})
         with opener.open(request, timeout=5) as response:
             self.assertEqual(json.load(response)["patch_sha256"], hashlib.sha256(self.patch).hexdigest())
+
+    def test_intake_rate_limit_persists_across_store_instances(self):
+        Handler.store = self.store
+        Handler.token = b"a" * 32
+        Handler.max_requests_24h = 1
+        server = IntakeHTTPServer(("127.0.0.1", 0), Handler)
+        thread = threading.Thread(target=lambda: server.serve_forever(poll_interval=0.01),
+                                  daemon=True)
+        thread.start()
+        self.addCleanup(server.server_close)
+        self.addCleanup(server.shutdown)
+        url = f"http://127.0.0.1:{server.server_port}/submissions"
+        body = json.dumps({"repository": self.repository, "commit": self.commit}).encode()
+        opener = build_opener(ProxyHandler({}))
+        def request():
+            return Request(url, data=body,
+                           headers={"Authorization": "Bearer " + "a" * 32,
+                                    "Content-Type": "application/json"}, method="POST")
+        with opener.open(request(), timeout=5) as response:
+            self.assertEqual(response.status, 202)
+            submission_id = json.load(response)["id"]
+        with self.assertRaises(HTTPError) as rejected:
+            opener.open(request(), timeout=5)
+        self.assertEqual(rejected.exception.code, 429)
+        rejected.exception.close()
+        upload = Request(url + f"/{submission_id}/artifact", data=b"x",
+                         headers={"Authorization": "Bearer " + "a" * 32}, method="PUT")
+        with self.assertRaises(HTTPError) as upload_rejected:
+            opener.open(upload, timeout=5)
+        self.assertEqual(upload_rejected.exception.code, 429)
+        upload_rejected.exception.close()
+        reopened = Store(self.store.state, self.source, self.config, fetcher=self.fetcher)
+        with self.assertRaisesRegex(IntakeError, "budget exhausted"):
+            reopened.reserve_intake_request(1)
+        with reopened.db() as connection:
+            connection.execute("UPDATE intake_requests SET created_utc='2000-01-01T00:00:00Z'")
+        reopened.reserve_intake_request(1)
 
     def test_git_reader_accepts_only_declared_regular_files(self):
         submission = self.root / "submission"
@@ -329,17 +368,19 @@ class IntakeTests(unittest.TestCase):
             connection.execute("UPDATE submissions SET status='built' WHERE id=?", (submission_id,))
         sent = []
         sender = lambda *args: sent.append(args)
+        limits = {"max_gpu_minutes_24h": WORKFLOW_TIMEOUT_MINUTES * 2,
+                  "max_repository_attempts_24h": 2}
         with patch("service.dispatch.validate_record"):
             with self.assertRaises(IntakeError):
                 dispatch(self.store, submission_id, "qualify", "balanced", "owner/repo",
-                         sender=sender)
+                         sender=sender, **limits)
             smoke = dispatch(self.store, submission_id, "smoke", "balanced", "owner/repo",
-                             sender=sender)
+                             sender=sender, **limits)
             self.assertEqual(smoke["state"], "dispatched")
             self.assertEqual(self.store.get(submission_id)["judge_dispatch"]["state"], "dispatched")
             with self.assertRaises(IntakeError):
                 dispatch(self.store, submission_id, "smoke", "balanced", "owner/repo",
-                         sender=sender)
+                         sender=sender, **limits)
         self.assertEqual(len(sent), 1)
         run = self.root / "smoke-run"
         run.mkdir()
@@ -356,8 +397,52 @@ class IntakeTests(unittest.TestCase):
         self.assertEqual(self.store.get(submission_id)["judge_dispatch"]["state"], "completed")
         with patch("service.dispatch.validate_record"):
             qualified = dispatch(self.store, submission_id, "qualify", "balanced", "owner/repo",
-                                 sender=sender)
+                                 sender=sender, **limits)
         self.assertEqual(qualified["state"], "dispatched")
+
+    def test_dispatch_reserves_full_timeout_against_rolling_budgets(self):
+        workflow = (Path(__file__).resolve().parents[1] /
+                    ".github/workflows/h200-rank.yml").read_text()
+        self.assertIn(f"timeout-minutes: {WORKFLOW_TIMEOUT_MINUTES}", workflow)
+        row = self.store.submit(self.repository, self.commit)
+        submission_id = row["id"]
+        prepare(self.store, submission_id)
+        (self.store.state / "jobs" / submission_id / "build-attestation.json").write_text("{}")
+        with self.store.db() as connection:
+            connection.execute("UPDATE submissions SET status='built' WHERE id=?", (submission_id,))
+        sent = []
+        sender = lambda *args: sent.append(args)
+        with patch("service.dispatch.validate_record"):
+            with self.assertRaisesRegex(IntakeError, "requires positive rolling"):
+                dispatch(self.store, submission_id, "smoke", "balanced", "owner/repo",
+                         sender=sender)
+            first = dispatch(self.store, submission_id, "smoke", "balanced", "owner/repo",
+                             sender=sender, max_gpu_minutes_24h=WORKFLOW_TIMEOUT_MINUTES,
+                             max_repository_attempts_24h=1)
+            self.assertEqual(first["reserved_gpu_minutes"], WORKFLOW_TIMEOUT_MINUTES)
+            with self.store.db() as connection:
+                connection.execute("UPDATE judge_dispatches SET state='failed' WHERE id=?",
+                                   (first["attempt"],))
+            with self.assertRaisesRegex(IntakeError, "GPU-minute budget exhausted"):
+                dispatch(self.store, submission_id, "smoke", "balanced", "owner/repo",
+                         sender=sender, max_gpu_minutes_24h=WORKFLOW_TIMEOUT_MINUTES,
+                         max_repository_attempts_24h=2)
+            with self.assertRaisesRegex(IntakeError, "repository attempt budget exhausted"):
+                dispatch(self.store, submission_id, "smoke", "balanced", "owner/repo",
+                         sender=sender, max_gpu_minutes_24h=WORKFLOW_TIMEOUT_MINUTES * 2,
+                         max_repository_attempts_24h=1)
+            second = dispatch(self.store, submission_id, "smoke", "balanced", "owner/repo",
+                              sender=sender, max_gpu_minutes_24h=WORKFLOW_TIMEOUT_MINUTES * 2,
+                              max_repository_attempts_24h=2)
+            self.assertEqual(second["state"], "dispatched")
+            with self.store.db() as connection:
+                connection.execute("""UPDATE judge_dispatches
+                    SET created_utc='2000-01-01T00:00:00Z', state='completed'""")
+            third = dispatch(self.store, submission_id, "smoke", "balanced", "owner/repo",
+                             sender=sender, max_gpu_minutes_24h=WORKFLOW_TIMEOUT_MINUTES,
+                             max_repository_attempts_24h=1)
+            self.assertEqual(third["state"], "dispatched")
+        self.assertEqual(len(sent), 3)
 
     def test_activation_requires_judge_variables_and_idle_h200_runner(self):
         workflow = (Path(__file__).resolve().parents[1] /

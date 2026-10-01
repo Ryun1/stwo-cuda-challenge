@@ -15,7 +15,7 @@ import subprocess
 import sys
 import tempfile
 from socketserver import TCPServer
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from urllib.parse import urlsplit
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -32,6 +32,10 @@ MAX_ARTIFACT = 1024 * 1024 * 1024
 
 
 class IntakeError(ValueError):
+    pass
+
+
+class RateLimitError(IntakeError):
     pass
 
 
@@ -113,6 +117,8 @@ class Store:
                 submission_id TEXT NOT NULL, tier TEXT NOT NULL, track TEXT NOT NULL,
                 state TEXT NOT NULL, created_utc TEXT NOT NULL,
                 FOREIGN KEY (submission_id) REFERENCES submissions(id))""")
+            connection.execute("""CREATE TABLE IF NOT EXISTS intake_requests (
+                id INTEGER PRIMARY KEY AUTOINCREMENT, created_utc TEXT NOT NULL)""")
 
     @contextmanager
     def db(self):
@@ -174,6 +180,21 @@ class Store:
                 envelope.get("receipt_sha256") != digest):
             raise IntakeError("stored receipt signature differs")
         return envelope
+
+    def reserve_intake_request(self, max_requests_24h: int) -> None:
+        if max_requests_24h < 1:
+            raise IntakeError("intake request budget must be positive")
+        now = datetime.now(timezone.utc)
+        cutoff = (now - timedelta(hours=24)).isoformat()
+        with self.db() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            connection.execute("DELETE FROM intake_requests WHERE julianday(created_utc)<julianday(?)",
+                               (cutoff,))
+            used = connection.execute("SELECT COUNT(*) FROM intake_requests").fetchone()[0]
+            if used >= max_requests_24h:
+                raise RateLimitError("rolling 24-hour intake request budget exhausted")
+            connection.execute("INSERT INTO intake_requests (created_utc) VALUES (?)",
+                               (now.isoformat(),))
 
     def submit(self, repository: str, commit: str, artifact_sha256: str | None = None) -> dict:
         if not GITHUB.fullmatch(repository) or not COMMIT.fullmatch(commit):
@@ -261,6 +282,7 @@ class Store:
 class Handler(BaseHTTPRequestHandler):
     store: Store
     token: bytes | None
+    max_requests_24h: int = 100
 
     def log_message(self, format: str, *args) -> None:
         # HTTP status is enough; paths, query strings, and credentials stay out of logs.
@@ -329,9 +351,12 @@ class Handler(BaseHTTPRequestHandler):
                 isinstance(request.get(key), str) for key in ("repository", "commit")
             ):
                 raise IntakeError("invalid submission request")
+            self.store.reserve_intake_request(self.max_requests_24h)
             row = self.store.submit(request["repository"], request["commit"],
                                     request.get("artifact_sha256"))
             self.send_json(202, row)
+        except RateLimitError as error:
+            self.send_json(429, {"error": str(error)})
         except (ValueError, subprocess.TimeoutExpired, json.JSONDecodeError) as error:
             self.send_json(400, {"error": str(error)[:400]})
 
@@ -344,8 +369,11 @@ class Handler(BaseHTTPRequestHandler):
             return
         try:
             length = int(self.headers.get("Content-Length", "0"))
+            self.store.reserve_intake_request(self.max_requests_24h)
             row = self.store.receive_artifact(parts[1], self.rfile, length)
             self.send_json(200, row)
+        except RateLimitError as error:
+            self.send_json(429, {"error": str(error)})
         except ValueError as error:
             self.send_json(400, {"error": str(error)[:400]})
 
@@ -364,7 +392,11 @@ def main() -> None:
     parser.add_argument("--listen", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8080)
     parser.add_argument("--token-file", type=Path)
+    parser.add_argument("--max-intake-requests-24h", type=int, required=True,
+                        help="global authenticated submission and upload request budget over rolling 24 hours")
     args = parser.parse_args()
+    if args.max_intake_requests_24h < 1:
+        parser.error("--max-intake-requests-24h must be positive")
     if args.listen not in ("127.0.0.1", "::1", "localhost") and not args.token_file:
         parser.error("a token file is required outside loopback")
     token = args.token_file.read_bytes().strip() if args.token_file else None
@@ -374,6 +406,7 @@ def main() -> None:
     store = Store(args.state, args.source, config)
     Handler.store = store
     Handler.token = token
+    Handler.max_requests_24h = args.max_intake_requests_24h
     with IntakeHTTPServer((args.listen, args.port), Handler) as server:
         print(f"intake listening on {args.listen}:{args.port}", flush=True)
         server.serve_forever()

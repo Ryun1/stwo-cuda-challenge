@@ -117,7 +117,8 @@ The CPU-only intake prototype and trusted dispatcher are runnable locally:
 
 ```sh
 python3 service/intake.py --source workspace/baseline \
-  --state ../stwo-cuda-challenge-state --token-file /secure/path/intake-token
+  --state ../stwo-cuda-challenge-state --token-file /secure/path/intake-token \
+  --max-intake-requests-24h 100
 python3 service/build_worker.py --source workspace/baseline \
   --state ../stwo-cuda-challenge-state --submission-id ID
 python3 service/dispatch.py --source workspace/baseline \
@@ -131,7 +132,8 @@ after patch validation, without building or reserving the H200. The worker
 rebuilds ranked binaries from source; uploaded artifacts are stored for future
 untrusted fast screening only. A real H200 deployment requires a fixture
 object store, verifier binaries, self-hosted runner, isolation, an externally
-provisioned receipt signing key, rate limits, and operator secrets outside Git.
+provisioned receipt signing key, chosen GPU dispatch budgets, and operator
+secrets outside Git. Intake's request limit is persistent across restarts.
 This repo does not claim to operate a live public ranking service yet.
 
 The [private staging repository](https://github.com/teddyjfpender/stwo-cuda-challenge)

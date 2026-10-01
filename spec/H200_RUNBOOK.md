@@ -56,12 +56,17 @@ fixture transfers, and hash checks happen before its timed proof work.
 
 ## Qualify the exact workflow
 
-1. Start `service/intake.py` on loopback with an external state directory.
+1. Start `service/intake.py` on loopback with an external state directory and
+   an explicit `--max-intake-requests-24h` limit (for example, `100`).
    Submit a source commit, then run `service/build_worker.py` for its returned
    ID. Uploaded binaries are not run by the ranked judge; the worker rebuilds
    the pinned source plus allowed patch outside the H200 timing interval.
 2. Dispatch `smoke`, then `qualify`, then `rank` through
-   `service/dispatch.py`. Each tier requires the prior receipt. The workflow
+   `service/dispatch.py`, passing `--max-gpu-minutes-24h` and
+   `--max-repository-attempts-24h` on each live call. For example, `540` and
+   `3` allow at most six 90-minute reservations globally and three attempts
+   from one repository in any rolling day. Failed and cancelled attempts count
+   conservatively. Each tier requires the prior receipt. The workflow
    carries an immutable dispatch attempt ID, measures one exclusive H200,
    verifies every proof and root, and publishes a redacted receipt. The rank
    tier performs three paired ABBA rounds and writes all eligible score files
