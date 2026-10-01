@@ -59,6 +59,9 @@ controls rental cost unless lower memory enables concurrency or a cheaper GPU.
 The full Pareto frontier of `(R_T, R_M)` is retained separately, including
 valid points that win neither scalar leaderboard. Later hardware-specific
 economic tracks may measure actual simultaneous throughput and price.
+One ranked measurement set writes score files for every eligible track. Missing
+a guard in one track removes only that track's score file; it does not discard
+the valid measurements or scores for the other tracks.
 
 For example, a candidate that is 20% slower and uses half the memory has
 `R_T=1.2`, `R_M=0.5`, so its balanced score is `1/sqrt(0.6)=1.291`; it is a

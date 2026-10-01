@@ -4,12 +4,13 @@ import json
 import math
 from pathlib import Path
 import sys
+import tempfile
 import unittest
 
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-from harness.score import InvalidRun, aggregate, resampled_log_ratios
+from harness.score import InvalidRun, aggregate, resampled_log_ratios, write_score_files
 
 
 class ScoreTests(unittest.TestCase):
@@ -69,6 +70,17 @@ class ScoreTests(unittest.TestCase):
         result = self.score(self.evidence(time_ratio=0.5, memory_ratio=1.11))
         self.assertFalse(result["tracks"]["latency"]["eligible"])
         self.assertTrue(result["tracks"]["balanced"]["eligible"])
+
+    def test_one_rank_run_publishes_only_eligible_track_files(self):
+        result = self.score(self.evidence(time_ratio=0.5, memory_ratio=1.11))
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            (directory / "score-latency.json").write_text("stale")
+            write_score_files(result, directory)
+            self.assertFalse((directory / "score-latency.json").exists())
+            self.assertTrue((directory / "score-memory.json").is_file())
+            balanced = json.loads((directory / "score-balanced.json").read_text())
+            self.assertEqual(balanced["score"], result["tracks"]["balanced"]["score"])
 
     def test_missing_round_or_failed_proof_rejected(self):
         evidence = self.evidence()

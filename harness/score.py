@@ -170,6 +170,20 @@ def aggregate(manifest: dict, evidence: dict, manifest_hash: str, config: dict) 
             "note": "Eligibility and scores require trusted judge-generated evidence; promotion also requires paired A/A noise and confidence checks."}
 
 
+def write_score_files(result: dict, score_dir: Path) -> None:
+    """Publish every eligible track from one verified H200 measurement set."""
+    score_dir.mkdir(parents=True, exist_ok=True)
+    for name, entry in result["tracks"].items():
+        target = score_dir / f"score-{name}.json"
+        if entry["eligible"]:
+            target.write_text(json.dumps({"score": entry["score"], "metrics": {
+                "r_time": result["r_time"], "r_memory": result["r_memory"],
+                "manifest_sha256": result["manifest_sha256"],
+                "contract_epoch": result["contract_epoch"]}}, indent=2) + "\n")
+        else:
+            target.unlink(missing_ok=True)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--manifest", type=Path, default=Path("fixtures/public-v1.json"))
@@ -182,16 +196,7 @@ def main() -> None:
                        canonical_hash(args.manifest), json.loads(args.config.read_text()))
     args.out.write_text(json.dumps(result, indent=2) + "\n")
     if args.score_dir:
-        args.score_dir.mkdir(parents=True, exist_ok=True)
-        for name, entry in result["tracks"].items():
-            target = args.score_dir / f"score-{name}.json"
-            if entry["eligible"]:
-                target.write_text(json.dumps({"score": entry["score"], "metrics": {
-                    "r_time": result["r_time"], "r_memory": result["r_memory"],
-                    "manifest_sha256": result["manifest_sha256"],
-                    "contract_epoch": result["contract_epoch"]}}, indent=2) + "\n")
-            else:
-                target.unlink(missing_ok=True)
+        write_score_files(result, args.score_dir)
     print(json.dumps({name: entry for name, entry in result["tracks"].items()}, indent=2))
 
 

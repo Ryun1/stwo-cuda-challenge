@@ -12,7 +12,7 @@ import statistics
 import subprocess
 import sys
 
-from score import aggregate
+from score import aggregate, write_score_files
 from source_policy import check_patch
 from attestation import validate_record
 
@@ -180,14 +180,11 @@ def main() -> None:
         return
     result = aggregate(manifest, evidence, evidence["manifest_sha256"], config)
     (args.out / "scorecard.json").write_text(json.dumps(result, indent=2) + "\n")
-    track = result["tracks"][args.track]
-    if not track["eligible"]:
-        raise SystemExit(f"{args.track} failed its guard; see {args.out / 'scorecard.json'}")
-    score = {"score": track["score"], "metrics": {"r_time": result["r_time"],
-             "r_memory": result["r_memory"], "manifest_sha256": result["manifest_sha256"],
-             "contract_epoch": result["contract_epoch"]}}
-    (ROOT / f"score-{args.track}.json").write_text(json.dumps(score, indent=2) + "\n")
-    print(json.dumps(score, indent=2))
+    write_score_files(result, ROOT)
+    selected = result["tracks"][args.track]
+    print(json.dumps({"selected_track": args.track, "eligible": selected["eligible"],
+                      "score": selected["score"],
+                      "scorecard": str(args.out / "scorecard.json")}, indent=2))
 
 
 if __name__ == "__main__":
