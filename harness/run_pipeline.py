@@ -38,6 +38,7 @@ def execute(source: Path, fixtures: Path, case: dict, out: Path, *, plan_only: b
     mode = modes[case["mode"]]
     source = source.resolve()
     fixtures = fixtures.resolve()
+    out = out.resolve()
     out.mkdir(parents=True, exist_ok=True)
     circuit = source / "zig-out/bin/stwo-circuit-recursion-cuda"
     registry = source / "vectors/circuit/official/registries/production.json"

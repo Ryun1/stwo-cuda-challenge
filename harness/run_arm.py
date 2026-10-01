@@ -16,9 +16,9 @@ import time
 
 ROOT = Path(__file__).resolve().parents[1]
 RUNTIME_ENV = frozenset({
-    "PATH", "LD_LIBRARY_PATH", "HOME", "TMPDIR", "LANG", "LC_ALL", "TZ",
+    "PATH", "LD_LIBRARY_PATH", "LANG", "LC_ALL", "TZ",
     "CUDA_VISIBLE_DEVICES", "CUDA_MODULE_LOADING", "CUDA_CACHE_DISABLE",
-    "CUDA_CACHE_MAXSIZE", "CUDA_CACHE_PATH", "CUDA_DEVICE_MAX_CONNECTIONS",
+    "CUDA_CACHE_MAXSIZE", "CUDA_DEVICE_MAX_CONNECTIONS",
     "NVIDIA_VISIBLE_DEVICES", "NVIDIA_DRIVER_CAPABILITIES",
 })
 
@@ -88,7 +88,13 @@ class Nvml:
 
 
 def run(command: list[str], out: Path, nvml: Nvml, env: dict, *, timeout: int = 900) -> dict:
+    out = out.resolve()
     out.mkdir(parents=True)
+    home, temp, cache = (out / name for name in ("home", "tmp", "cuda-cache"))
+    for directory in (home, temp, cache):
+        directory.mkdir()
+    runtime_env = {**env, "HOME": str(home), "TMPDIR": str(temp),
+                   "CUDA_CACHE_PATH": str(cache)}
     initial = nvml.read().used
     if initial > 2_000_000_000:
         raise RuntimeError("GPU became busy before run")
@@ -114,7 +120,7 @@ def run(command: list[str], out: Path, nvml: Nvml, env: dict, *, timeout: int = 
     timed_out = False
     with (out / "process.log").open("wb") as log:
         process = subprocess.Popen(command, stdout=log, stderr=subprocess.STDOUT,
-                                   env=env, start_new_session=True)
+                                   cwd=out, env=runtime_env, start_new_session=True)
         try:
             process.wait(timeout=timeout)
         except subprocess.TimeoutExpired:
@@ -177,6 +183,7 @@ def main() -> None:
     parser.add_argument("--case-id", action="append", help="run only selected public cases for smoke")
     parser.add_argument("--preflight", action="store_true", help="hash all selected fixtures without opening CUDA")
     args = parser.parse_args()
+    args.out = args.out.resolve()
     config = json.loads(args.config.read_text())
     manifest = json.loads(args.manifest.read_text())
     if (manifest.get("contract_epoch") != config["contractEpoch"] or

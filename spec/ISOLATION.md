@@ -6,6 +6,10 @@ the H200 runner enforces and tests it. The candidate controls allowed CUDA
 source changes and their compiled prover binaries; the judge controls the
 fixture manifest, reference outputs, verifiers, clock, NVML monitor, and
 service credentials.
+The local runner now starts each proof process in a fresh case directory with
+case-local `HOME`, `TMPDIR`, and `CUDA_CACHE_PATH`. This makes baseline and
+candidate cache conditions consistent, but a same-UID process could still
+read other host paths; these directories are not the required sandbox.
 
 | Resource | Candidate access during one timed case |
 | --- | --- |

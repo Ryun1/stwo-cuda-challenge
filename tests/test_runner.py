@@ -1,4 +1,5 @@
 import hashlib
+import json
 from pathlib import Path
 import sys
 import tempfile
@@ -42,6 +43,24 @@ class RunnerTests(unittest.TestCase):
             self.assertEqual(result["peak_device_bytes"], 10_000)
             self.assertGreaterEqual(result["nvml_samples"], 2)
             self.assertEqual(result["exit_code"], 0)
+
+    def test_each_run_has_private_working_and_cache_directories(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "trial"
+            script = ("import json,os,time; time.sleep(.03); print(json.dumps({k:os.environ.get(k) "
+                      "for k in ('HOME','TMPDIR','CUDA_CACHE_PATH','GH_TOKEN')} "
+                      "| {'cwd':os.getcwd()}))")
+            env = candidate_env({"HOME": "/judge", "TMPDIR": "/judge/tmp",
+                                 "CUDA_CACHE_PATH": "/judge/cache", "GH_TOKEN": "secret"},
+                                output / "coefficients.bin", output / "artifacts")
+            run([sys.executable, "-c", script], output, FakeNvml(), env, timeout=3)
+            seen = json.loads((output / "process.log").read_text())
+            self.assertEqual(seen["cwd"], str(output.resolve()))
+            for name, subdir in (("HOME", "home"), ("TMPDIR", "tmp"),
+                                 ("CUDA_CACHE_PATH", "cuda-cache")):
+                self.assertEqual(seen[name], str(output.resolve() / subdir))
+                self.assertTrue((output / subdir).is_dir())
+            self.assertIsNone(seen["GH_TOKEN"])
 
     def test_fixture_digest_and_path_confinement(self):
         with tempfile.TemporaryDirectory() as directory:
