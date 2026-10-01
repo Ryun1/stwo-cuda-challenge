@@ -7,7 +7,7 @@ must not be dispatched yet.
 
 | Gate | Current evidence | Required activation evidence |
 | --- | --- | --- |
-| Contract and data | Local `check_data.py` checks 60 files, including all six standalone PIE proof JSON files. The prior 54-file remote contract workflow passed. | Confirm the expanded LFS pointers on remote CI, then repeat `check_data.py` after the runner obtains the public data. |
+| Contract and data | Local `check_data.py` checks 60 files; remote contract workflow [#36914842712](https://github.com/teddyjfpender/stwo-cuda-challenge/actions/runs/36914842712) passed the 60-file pointer check, including 36 LFS objects. | Repeat the full hash check after the runner obtains the public data. |
 | Independent verifiers | The pinned standalone Rust verifier builds locally. Both retained production-registry H200 leaf proofs passed the pinned Rust `verify_cairo_ex` helper with the binary hashes in `data/README.md`. | Build both verifiers from the pinned baseline on the runner, record executable hashes, and run them in the judge. |
 | Public PIE output files | Six proofs reproduced on pinned Metal match the previously recorded H200 digests byte-for-byte and pass pinned Rust verification; files are now under `data/outputs/pie/`. | Run the public PIE cases afresh on the H200 judge to qualify the end-to-end runner and timing. |
 | Eight-leaf CUDA fold | Public inputs and a Rust-byte-identical CPU reference root are committed. | Run the CUDA `recursion:eight-distinct-pie-fold` case on H200 and require proof, outputs, and packed bytes to match the reference. |
