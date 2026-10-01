@@ -65,10 +65,12 @@ def capture_process_output(stream, log, result: dict) -> None:
     except Exception as cause:
         error = str(cause)
     finally:
-        stream.close()
-        result["bytes"] = written + (len(TRUNCATION_MARKER) if truncated else 0)
-        result["truncated"] = truncated
-        result["error"] = error
+        try:
+            stream.close()
+        finally:
+            result["bytes"] = written + (len(TRUNCATION_MARKER) if truncated else 0)
+            result["truncated"] = truncated
+            result["error"] = error
 
 
 class Memory(ctypes.Structure):
@@ -232,6 +234,8 @@ def run(command: list[str], out: Path, nvml: Nvml, env: dict, *, timeout: int = 
             reader.join(timeout=20)
             if reader.is_alive():
                 raise RuntimeError("candidate stdout pipe did not close after process exit")
+            if "bytes" not in log_result:
+                raise RuntimeError("candidate stdout capture did not report completion")
         exit_code = process.returncode
         if container_id and not timed_out and exit_code == 0:
             inspected = subprocess.run(["docker", "inspect", "--format", "{{.State.ExitCode}}",
