@@ -70,10 +70,11 @@ def verify(deep: bool = True, pointers: bool = False) -> tuple[int, int]:
             if task["expected_proof_sha256"] != case["expected_proof_sha256"]:
                 raise ValueError(f"PIE proof record differs: {case['id']}")
             reference = task["proof_file"]
-            if reference is not None:
-                if reference["sha256"] != case["expected_proof_sha256"]:
-                    raise ValueError(f"PIE proof hash differs: {case['id']}")
-                check(reference)
+            if reference is None:
+                raise ValueError(f"PIE reference proof missing: {case['id']}")
+            if reference["sha256"] != case["expected_proof_sha256"]:
+                raise ValueError(f"PIE proof hash differs: {case['id']}")
+            check(reference)
             continue
         for key, entry in task["root_outputs"].items():
             if entry["sha256"] != case["expected_root"][key]:

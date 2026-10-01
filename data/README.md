@@ -4,7 +4,8 @@
 objects needed by the public workloads. `outputs/` contains retained reference
 proofs and root outputs. [`catalog.json`](catalog.json) maps each public task to
 its required input files and exact expected output SHA-256 digests. The three
-rankings (latency, memory, balanced) use the **same** tasks and data.
+rankings (latency, memory, balanced) score the **same** proving tasks; they are
+performance objectives, not separate proof formats.
 
 | Operation | Inputs | Expected outputs |
 | --- | --- | --- |
@@ -14,6 +15,13 @@ rankings (latency, memory, balanced) use the **same** tasks and data.
 | Fold (two leaves) | `inputs/*.leaf.json` | `outputs/fold/two-leaf/root.proof`, `root_outputs.json`, `root_packed.json`. |
 | Fold (eight continuous leaves) | `inputs/_tree8_proofs/*.leaf.json` | `outputs/fold/eight-leaf/root.proof`, `root_outputs.json`, `root_packed.json`. |
 | Full two-leaf pipeline | Two CPI/preimage pairs in `inputs/` | The two-leaf wrap outputs plus the shared two-leaf root files above; serial and integrated batch must match the same bytes. |
+
+The `.leaf.json` proofs under `inputs/` are **inputs to a fold**. The proofs
+produced by a task are under `outputs/`. Both fold cases terminate at the
+`circuit_multiverifier` root. A further root wrap/fold stage is not in this
+contract epoch, so there is no purported expected proof for that stage. When
+that stage is qualified, it needs its own inputs, output proof, verifier, and
+catalog entry rather than reusing a fold-root digest.
 
 The eight-leaf root was byte-matched to the pinned Rust reducer. The two-leaf
 root and its wrap artifacts came from the retained H200 CUDA run. Its two Cairo
