@@ -172,6 +172,25 @@ class IntakeTests(unittest.TestCase):
         self.assertEqual(self.store.get(submission_id)["status"], "judge_failed")
         self.assertEqual(self.store.receipt(submission_id)["tier"], "qualify")
 
+    def test_failed_judge_cannot_publish_leftover_rank_scorecard(self):
+        row = self.store.submit(self.repository, self.commit)
+        submission_id = row["id"]
+        with self.store.db() as connection:
+            connection.execute("UPDATE submissions SET status='built' WHERE id=?", (submission_id,))
+            connection.execute("""INSERT INTO judge_dispatches
+                (submission_id, tier, track, state, created_utc)
+                VALUES (?, 'rank', 'balanced', 'dispatched', '2026-10-01T00:00:00Z')""",
+                (submission_id,))
+        run = self.root / "failed-with-scorecard"
+        run.mkdir()
+        (run / "evidence.json").write_text("{}")
+        (run / "scorecard.json").write_text("{}")
+        self.assertIsNone(publish(self.store, submission_id, run, "rank",
+                                  judge_succeeded=False))
+        self.assertEqual(self.store.get(submission_id)["status"], "judge_failed")
+        self.assertEqual(self.store.get(submission_id)["judge_dispatch"]["state"], "failed")
+        self.assertIsNone(self.store.receipt(submission_id, "rank"))
+
     def test_dispatch_enforces_tiers_and_one_active_gpu_slot(self):
         row = self.store.submit(self.repository, self.commit)
         submission_id = row["id"]

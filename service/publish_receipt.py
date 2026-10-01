@@ -19,7 +19,8 @@ def public_ids() -> set[str]:
     return {case["id"] for case in manifest["cases"]}
 
 
-def publish(store: Store, submission_id: str, run_dir: Path, tier: str) -> dict | None:
+def publish(store: Store, submission_id: str, run_dir: Path, tier: str,
+            *, judge_succeeded: bool = True) -> dict | None:
     row = store.get(submission_id)
     if (not row or row["contract_epoch"] != store.config["contractEpoch"] or
             row["status"] not in ("built", "smoked", "qualified", "ranked", "judge_failed")):
@@ -28,7 +29,8 @@ def publish(store: Store, submission_id: str, run_dir: Path, tier: str) -> dict 
         raise IntakeError("unknown judge tier")
     evidence_path = run_dir / "evidence.json"
     score_path = run_dir / "scorecard.json"
-    if not evidence_path.is_file() or (tier == "rank" and not score_path.is_file()):
+    if (not judge_succeeded or not evidence_path.is_file() or
+            (tier == "rank" and not score_path.is_file())):
         with store.db() as connection:
             connection.execute("UPDATE submissions SET status='judge_failed' WHERE id=?", (submission_id,))
             connection.execute("""UPDATE judge_dispatches SET state='failed'
@@ -101,10 +103,13 @@ def main() -> None:
     parser.add_argument("--submission-id", required=True)
     parser.add_argument("--run-dir", type=Path, required=True)
     parser.add_argument("--tier", choices=("smoke", "qualify", "rank"), required=True)
+    parser.add_argument("--judge-outcome", choices=("success", "failure", "cancelled"),
+                        required=True, help="actual workflow judge-step outcome")
     args = parser.parse_args()
     config = json.loads((ROOT / "benchmark.json").read_text())
     receipt = publish(Store(args.state, args.source, config), args.submission_id,
-                      args.run_dir, args.tier)
+                      args.run_dir, args.tier,
+                      judge_succeeded=args.judge_outcome == "success")
     print("judge failed" if receipt is None else f"published {receipt['tier']} receipt")
 
 

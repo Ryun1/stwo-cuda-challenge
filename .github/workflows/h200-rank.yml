@@ -67,7 +67,8 @@ jobs:
         run: |
           python3 service/publish_receipt.py \
             --state "$SUBMISSION_STATE" --source "$BASELINE_ROOT/source" \
-            --submission-id "$SUBMISSION_ID" --run-dir "$RUN_DIR" --tier "$TIER"
+            --submission-id "$SUBMISSION_ID" --run-dir "$RUN_DIR" --tier "$TIER" \
+            --judge-outcome "${{ steps.judge.outcome }}"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
