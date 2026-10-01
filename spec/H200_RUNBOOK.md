@@ -35,7 +35,9 @@ fixture transfers, and hash checks happen before its timed proof work.
    base digest. Record the local image ID returned by
    `docker image inspect --format '{{.Id}}' IMAGE_TAG`. Set
    `STWO_SANDBOX_IMAGE` to that `sha256:` ID. The judge refuses a mutable tag
-   or an image absent from the local daemon. Verify the exact image and driver
+   or an image absent from the local daemon. First run
+   `python3 scripts/probe_sandbox.py --image "$STWO_SANDBOX_IMAGE"` on the host.
+   Verify the exact image and driver
    combination with one sandboxed PIE, fold, and full-pipeline proof before
    ranking; local plan tests alone do not qualify it.
 3. Copy the separately held ranked fixture store and manifest to read-only

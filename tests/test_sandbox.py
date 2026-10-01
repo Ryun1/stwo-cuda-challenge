@@ -57,6 +57,10 @@ class SandboxTests(unittest.TestCase):
             self.assertTrue(all("readonly" in mount for mount in mounts if "target=/work" not in mount))
             self.assertFalse(any(str(secret.parent) in mount for mount in mounts))
             self.assertFalse(any(str(source) in mount for mount in mounts))
+            cpu = docker_command(IMAGE, runtime, staged, out, preprocessed,
+                                 artifacts, ["python3", "-c", "pass"], {}, gpu=False)
+            self.assertNotIn("--gpus", cpu)
+            self.assertNotIn("NVIDIA_VISIBLE_DEVICES", " ".join(cpu))
             with self.assertRaisesRegex(ValueError, "pinned"):
                 docker_command("nvidia/cuda:latest", runtime, staged, out, preprocessed,
                                artifacts, ["true"], {})

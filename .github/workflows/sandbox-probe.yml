@@ -1,0 +1,21 @@
+name: CPU sandbox probe
+on:
+  workflow_dispatch:
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Build and probe the case isolation image without a GPU
+        run: |
+          docker build -f harness/sandbox.Dockerfile \
+            --build-arg CUDA_RUNTIME_IMAGE=ubuntu:24.04 \
+            -t stwo-judge:cpu-probe .
+          image=$(docker image inspect --format '{{.Id}}' stwo-judge:cpu-probe)
+          python3 scripts/probe_sandbox.py --image "$image"

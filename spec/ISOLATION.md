@@ -39,10 +39,15 @@ applies to participant-supplied fast-screening
 artifacts if that optional tier is ever enabled; such artifacts remain
 untrusted and cannot produce ranked receipts.
 
-Before activating the runner, exercise the boundary with a probe binary that
-tries to read a judge-only sentinel, list a sibling holdout case, read service
-tokens, connect to an external address, write a fixture, and access another
-GPU. Every attempt must fail. Then run the pinned baseline proof for one PIE,
+Run `python3 scripts/probe_sandbox.py --image "$STWO_SANDBOX_IMAGE"` on the
+Linux runner. Its CPU probe checks the actual Docker mounts, UID, private PID
+namespace, hidden judge sentinel and sibling input, absent service token and
+Docker socket, blocked outbound network, read-only input and preprocessing
+asset, and writable case output. A separate manually dispatched
+`sandbox-probe.yml` workflow runs the same probe on a hosted Linux CPU using a
+disposable Ubuntu base image; it does not qualify NVIDIA access or the
+production image. On the H200, also try to access another GPU. Every denied
+attempt must fail. Then run the pinned baseline proof for one PIE,
 one fold, and one full pipeline case inside the boundary, and require the
 same independently verified proof bytes as the unsandboxed baseline. Record
 the launcher version, UID/mount/network policy, device mapping, and test

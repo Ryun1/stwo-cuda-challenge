@@ -87,7 +87,7 @@ def case_file(case: dict) -> dict:
 
 def docker_command(image: str, source: Path, staged: Path, case_dir: Path,
                    preprocessed: Path, artifact_dir: Path, inner: list[str],
-                   runtime_env: dict[str, str]) -> list[str]:
+                   runtime_env: dict[str, str], *, gpu: bool = True) -> list[str]:
     if not IMAGE.fullmatch(image):
         raise ValueError("sandbox image must be pinned by a SHA-256 image ID or repository digest")
     mounts = ((source, CONTAINER_SOURCE, True), (staged, CONTAINER_INPUTS, True),
@@ -96,11 +96,13 @@ def docker_command(image: str, source: Path, staged: Path, case_dir: Path,
               (artifact_dir, CONTAINER_ARTIFACTS, True))
     command = ["docker", "create", "--network", "none",
                "--read-only", "--cap-drop", "ALL", "--security-opt", "no-new-privileges",
-               "--pids-limit", "256", "--gpus", "device=0", "--user", "65532:65532",
+               "--pids-limit", "256", "--user", "65532:65532",
                "--ulimit", "fsize=1073741824:1073741824", "--ulimit", "core=0:0",
                "--name", f"stwo-judge-{uuid.uuid4().hex}",
                "--workdir", "/work/run",
                "--tmpfs", "/tmp:rw,nosuid,nodev,size=268435456,mode=1777"]
+    if gpu:
+        command.extend(["--gpus", "device=0"])
     for host, container, read_only in mounts:
         host = host.resolve(strict=True)
         if "," in str(host):
@@ -111,8 +113,9 @@ def docker_command(image: str, source: Path, staged: Path, case_dir: Path,
            "CUDA_CACHE_PATH": "/work/run/cuda-cache",
            "STWO_CAIRO_CUDA_PREPROCESSED_COEFFICIENTS": str(CONTAINER_PREPROCESSED),
            "STWO_CAIRO_CUDA_ARTIFACT_DIR": str(CONTAINER_ARTIFACTS),
-           "STWO_CAIRO_CUDA_PREPROCESSED_VARIANT": "canonical",
-           "NVIDIA_VISIBLE_DEVICES": "0", "NVIDIA_DRIVER_CAPABILITIES": "compute,utility"}
+           "STWO_CAIRO_CUDA_PREPROCESSED_VARIANT": "canonical"}
+    if gpu:
+        env.update(NVIDIA_VISIBLE_DEVICES="0", NVIDIA_DRIVER_CAPABILITIES="compute,utility")
     for key in ("CUDA_MODULE_LOADING", "CUDA_CACHE_MAXSIZE", "CUDA_DEVICE_MAX_CONNECTIONS"):
         if key in runtime_env:
             env[key] = runtime_env[key]
