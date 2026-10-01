@@ -1,0 +1,599 @@
+{
+  "schema": "stwo-cuda-challenge-data-v1",
+  "contract_epoch": "h200-v1",
+  "source_commit": "b2873365dc28ed4bc4b27de10e01ea0beeef7c93",
+  "fixture_manifest": "fixtures/public-v1.json",
+  "tasks": [
+    {
+      "id": "pie:15582797_15582797",
+      "family": "pie",
+      "kind": "cairo_proof",
+      "inputs": [
+        {
+          "path": "data/inputs/15582797_15582797.cpi",
+          "sha256": "319b538ff50ad8e04735886a7844de300198194a4cc2128dcb57bc625ec4e4cb",
+          "bytes": 408205744
+        }
+      ],
+      "expected_proof_sha256": "fcc457fee3bcaca85efd97d308daa1a16e849c633b4571144417543158eb1eeb",
+      "proof_file": null
+    },
+    {
+      "id": "pie:15603744_15603744",
+      "family": "pie",
+      "kind": "cairo_proof",
+      "inputs": [
+        {
+          "path": "data/inputs/15603744_15603744.cpi",
+          "sha256": "6e178ca7bc3b7d4f0ccf43d7c283e8d069fd1d50ae9de87e2ea5ab419af17c5b",
+          "bytes": 444736304
+        }
+      ],
+      "expected_proof_sha256": "bf963282d104deec420cdaec8e26f8b2fd235c2e2374a7a4f0b8d6eedf0f3109",
+      "proof_file": null
+    },
+    {
+      "id": "pie:15581148_15581148",
+      "family": "pie",
+      "kind": "cairo_proof",
+      "inputs": [
+        {
+          "path": "data/inputs/15581148_15581148.cpi",
+          "sha256": "272f0b1d79d89e999f83b8a34f01dbc3f7a500ecb815c189156bd3fb54e25e57",
+          "bytes": 377015036
+        }
+      ],
+      "expected_proof_sha256": "fd4f9c27bad18a2c7f089b8af5eb7c8e3a3db1c7aeb3d38f3ad5b142f6061b3c",
+      "proof_file": null
+    },
+    {
+      "id": "pie:15590913_15590913",
+      "family": "pie",
+      "kind": "cairo_proof",
+      "inputs": [
+        {
+          "path": "data/inputs/15590913_15590913.cpi",
+          "sha256": "9d503fa0c6c818d8de84d3d71208df641bb62ec93e480687252128f698294bc3",
+          "bytes": 443939388
+        }
+      ],
+      "expected_proof_sha256": "23ef11f1f7bbf0b31d6ede197bd67d2548975b951283c4cedc0fb6148e443af9",
+      "proof_file": null
+    },
+    {
+      "id": "pie:15588777_15588780",
+      "family": "pie",
+      "kind": "cairo_proof",
+      "inputs": [
+        {
+          "path": "data/inputs/15588777_15588780.cpi",
+          "sha256": "1509610daab8281002aff83d052cf311d1753952d9f45cf92a3f6380bbe795f6",
+          "bytes": 662633424
+        }
+      ],
+      "expected_proof_sha256": "8f24b5a15dceb4c1b850c39e9fb699acf9e1ddcecac2fc993960ce783c8ca310",
+      "proof_file": null
+    },
+    {
+      "id": "pie:15591789_15591789",
+      "family": "pie",
+      "kind": "cairo_proof",
+      "inputs": [
+        {
+          "path": "data/inputs/15591789_15591789.cpi",
+          "sha256": "27eb79aaf71292a47310292892119940f65258fb8ae4790b64dea51eed92c4e9",
+          "bytes": 494945496
+        }
+      ],
+      "expected_proof_sha256": "3c39b6f0a59aec76ccc5c215a2530905a0617306260e3590284f11931578151a",
+      "proof_file": null
+    },
+    {
+      "id": "recursion:two-leaf-wrap-fold",
+      "family": "recursion",
+      "kind": "fold_root",
+      "inputs": [
+        {
+          "path": "data/inputs/15627902-15627904.leaf.json",
+          "sha256": "dcf3ed4214790cfef602766f4edbfbaa03dab2fa05ebc3fba88d082f566677d8",
+          "bytes": 734783
+        },
+        {
+          "path": "data/inputs/15627905-15627907.leaf.json",
+          "sha256": "7cda055e4bf0fcda6debab8c137aaa794176922ba4efb528994b1fd324aa22db",
+          "bytes": 734290
+        }
+      ],
+      "root_outputs": {
+        "proof_sha256": {
+          "path": "data/outputs/fold/two-leaf/root.proof",
+          "sha256": "9093f941c4a9144fd653441c582cc0921bac8431df8df46bdd556b8e661af724",
+          "bytes": 1508773
+        },
+        "outputs_sha256": {
+          "path": "data/outputs/fold/two-leaf/root_outputs.json",
+          "sha256": "abaefd94d716e2e4f07b5a2fcd521764e5d4c0f8dd04ec60e095bf74d0e1349b",
+          "bytes": 88
+        },
+        "packed_sha256": {
+          "path": "data/outputs/fold/two-leaf/root_packed.json",
+          "sha256": "72f17bf582e5438defd30e2f3c52f87ff47e5d6f0d1223b98d37bac8007c54a2",
+          "bytes": 13231
+        }
+      }
+    },
+    {
+      "id": "recursion:eight-distinct-pie-fold",
+      "family": "recursion",
+      "kind": "fold_root",
+      "inputs": [
+        {
+          "path": "data/inputs/_tree8_proofs/15578420_15578429.leaf.json",
+          "sha256": "3dbd9f3bef73c09eaac9dbacb49cac797f7ac234c1c91b0f1946f2363af9a487",
+          "bytes": 735532
+        },
+        {
+          "path": "data/inputs/_tree8_proofs/15578430_15578439.leaf.json",
+          "sha256": "ed55bd2dd0633fed525b94bf0e29da3323a889ae3a82ddb41aee5ee08eccfc57",
+          "bytes": 734453
+        },
+        {
+          "path": "data/inputs/_tree8_proofs/15578440_15578449.leaf.json",
+          "sha256": "f653ec08f72b19d3f6f1a784de4fd127081e70f65acc14dd36e637022002d638",
+          "bytes": 740937
+        },
+        {
+          "path": "data/inputs/_tree8_proofs/15578450_15578459.leaf.json",
+          "sha256": "25f8ffdcc7ea24226425eb692fe2e9e8f008a347dd3bd8b0ea3f53776169c7c0",
+          "bytes": 734904
+        },
+        {
+          "path": "data/inputs/_tree8_proofs/15578460_15578469.leaf.json",
+          "sha256": "54bddf55e9398d5141d6dc56aaa25657c565ea18bfa878ba98b7852d91cbbc49",
+          "bytes": 737748
+        },
+        {
+          "path": "data/inputs/_tree8_proofs/15578470_15578479.leaf.json",
+          "sha256": "d68a216c6100bd82a5625725cb0c5f6bc02a0fa2c09c2c65adb8d38ba2863008",
+          "bytes": 735438
+        },
+        {
+          "path": "data/inputs/_tree8_proofs/15578480_15578489.leaf.json",
+          "sha256": "c38f25606c7c439d4d4328b6b9918bca5c5c317a7abc4c2c66f39e6cd5ee2d33",
+          "bytes": 736404
+        },
+        {
+          "path": "data/inputs/_tree8_proofs/15578490_15578499.leaf.json",
+          "sha256": "e8095e9b7f8585d90a04dfcad757f2c1530b787bb55a5e8782091673da03d344",
+          "bytes": 735983
+        }
+      ],
+      "root_outputs": {
+        "proof_sha256": {
+          "path": "data/outputs/fold/eight-leaf/root.proof",
+          "sha256": "053157c56469b3c452435ca9b0569979e928405c130928b8b76b49fbbe2646a9",
+          "bytes": 1504462
+        },
+        "outputs_sha256": {
+          "path": "data/outputs/fold/eight-leaf/root_outputs.json",
+          "sha256": "5f88063eb7054713e3ee24507b239d972c668a781b99d067fa3b4f0e12fd968d",
+          "bytes": 87
+        },
+        "packed_sha256": {
+          "path": "data/outputs/fold/eight-leaf/root_packed.json",
+          "sha256": "deb27b33f0057f9cd4cff1ae9eea782d588b3c4a7babce4551fe3a6f043786b4",
+          "bytes": 68433
+        }
+      }
+    },
+    {
+      "id": "pipeline:two-leaf-root",
+      "family": "pipeline",
+      "kind": "full_pipeline",
+      "inputs": [
+        {
+          "path": "data/inputs/15627902-15627904.prover_input.cpi",
+          "sha256": "c92a1ecd5baf8651e88c6d96f016cfa2646bbda2cf646fec9bc0558c200a6f81",
+          "bytes": 32988292
+        },
+        {
+          "path": "data/inputs/15627902-15627904.preimage.hex.json",
+          "sha256": "6ba24d85781e221b35fda38e3550e7107a3202952f61c3ff2696a761106e5de8",
+          "bytes": 6648
+        },
+        {
+          "path": "data/inputs/15627905-15627907.prover_input.cpi",
+          "sha256": "3c898538af071069385e5deae70a086a31e8ab87198fa198cd6fcf0f3e3d1557",
+          "bytes": 23565556
+        },
+        {
+          "path": "data/inputs/15627905-15627907.preimage.hex.json",
+          "sha256": "de65c3023ea4c6aecf03fe57de44ebf627a8d0cc47663b24e555013cb7199251",
+          "bytes": 6128
+        }
+      ],
+      "root_outputs": {
+        "proof_sha256": {
+          "path": "data/outputs/fold/two-leaf/root.proof",
+          "sha256": "9093f941c4a9144fd653441c582cc0921bac8431df8df46bdd556b8e661af724",
+          "bytes": 1508773
+        },
+        "outputs_sha256": {
+          "path": "data/outputs/fold/two-leaf/root_outputs.json",
+          "sha256": "abaefd94d716e2e4f07b5a2fcd521764e5d4c0f8dd04ec60e095bf74d0e1349b",
+          "bytes": 88
+        },
+        "packed_sha256": {
+          "path": "data/outputs/fold/two-leaf/root_packed.json",
+          "sha256": "72f17bf582e5438defd30e2f3c52f87ff47e5d6f0d1223b98d37bac8007c54a2",
+          "bytes": 13231
+        }
+      },
+      "leaf_outputs": [
+        {
+          "pie": "15627902-15627904",
+          "inputs": [
+            {
+              "path": "data/inputs/15627902-15627904.prover_input.cpi",
+              "sha256": "c92a1ecd5baf8651e88c6d96f016cfa2646bbda2cf646fec9bc0558c200a6f81",
+              "bytes": 32988292
+            },
+            {
+              "path": "data/inputs/15627902-15627904.preimage.hex.json",
+              "sha256": "6ba24d85781e221b35fda38e3550e7107a3202952f61c3ff2696a761106e5de8",
+              "bytes": 6648
+            }
+          ],
+          "cairo_proof.json": {
+            "path": "data/outputs/pie-wrap/two-leaf/15627902-15627904.cairo_proof.json",
+            "sha256": "3b85397fbc4d84817560ed15b6aac0a69e35998a15b524ef1a672a8b7480ed85",
+            "bytes": 7968445
+          },
+          "leaf_proof.json": {
+            "path": "data/outputs/pie-wrap/two-leaf/15627902-15627904.leaf_proof.json",
+            "sha256": "01ed69eb3083e2d3e91acd77b1bad060907374cdb924f024132864f072804a1c",
+            "bytes": 728230
+          }
+        },
+        {
+          "pie": "15627905-15627907",
+          "inputs": [
+            {
+              "path": "data/inputs/15627905-15627907.prover_input.cpi",
+              "sha256": "3c898538af071069385e5deae70a086a31e8ab87198fa198cd6fcf0f3e3d1557",
+              "bytes": 23565556
+            },
+            {
+              "path": "data/inputs/15627905-15627907.preimage.hex.json",
+              "sha256": "de65c3023ea4c6aecf03fe57de44ebf627a8d0cc47663b24e555013cb7199251",
+              "bytes": 6128
+            }
+          ],
+          "cairo_proof.json": {
+            "path": "data/outputs/pie-wrap/two-leaf/15627905-15627907.cairo_proof.json",
+            "sha256": "4ed79546a1406bbc35fc3afb1044d06f6196abf9aac444499e3fa644bb748ca0",
+            "bytes": 7956866
+          },
+          "leaf_proof.json": {
+            "path": "data/outputs/pie-wrap/two-leaf/15627905-15627907.leaf_proof.json",
+            "sha256": "fe69619f1b3a699038fdaea6a4e5dd420d0f0fba0a17a01e681ab5cfbe901400",
+            "bytes": 728230
+          }
+        }
+      ]
+    },
+    {
+      "id": "pipeline:two-leaf-batch-integrated",
+      "family": "pipeline",
+      "kind": "full_pipeline",
+      "inputs": [
+        {
+          "path": "data/inputs/15627902-15627904.prover_input.cpi",
+          "sha256": "c92a1ecd5baf8651e88c6d96f016cfa2646bbda2cf646fec9bc0558c200a6f81",
+          "bytes": 32988292
+        },
+        {
+          "path": "data/inputs/15627902-15627904.preimage.hex.json",
+          "sha256": "6ba24d85781e221b35fda38e3550e7107a3202952f61c3ff2696a761106e5de8",
+          "bytes": 6648
+        },
+        {
+          "path": "data/inputs/15627905-15627907.prover_input.cpi",
+          "sha256": "3c898538af071069385e5deae70a086a31e8ab87198fa198cd6fcf0f3e3d1557",
+          "bytes": 23565556
+        },
+        {
+          "path": "data/inputs/15627905-15627907.preimage.hex.json",
+          "sha256": "de65c3023ea4c6aecf03fe57de44ebf627a8d0cc47663b24e555013cb7199251",
+          "bytes": 6128
+        }
+      ],
+      "root_outputs": {
+        "proof_sha256": {
+          "path": "data/outputs/fold/two-leaf/root.proof",
+          "sha256": "9093f941c4a9144fd653441c582cc0921bac8431df8df46bdd556b8e661af724",
+          "bytes": 1508773
+        },
+        "outputs_sha256": {
+          "path": "data/outputs/fold/two-leaf/root_outputs.json",
+          "sha256": "abaefd94d716e2e4f07b5a2fcd521764e5d4c0f8dd04ec60e095bf74d0e1349b",
+          "bytes": 88
+        },
+        "packed_sha256": {
+          "path": "data/outputs/fold/two-leaf/root_packed.json",
+          "sha256": "72f17bf582e5438defd30e2f3c52f87ff47e5d6f0d1223b98d37bac8007c54a2",
+          "bytes": 13231
+        }
+      },
+      "leaf_outputs": [
+        {
+          "pie": "15627902-15627904",
+          "inputs": [
+            {
+              "path": "data/inputs/15627902-15627904.prover_input.cpi",
+              "sha256": "c92a1ecd5baf8651e88c6d96f016cfa2646bbda2cf646fec9bc0558c200a6f81",
+              "bytes": 32988292
+            },
+            {
+              "path": "data/inputs/15627902-15627904.preimage.hex.json",
+              "sha256": "6ba24d85781e221b35fda38e3550e7107a3202952f61c3ff2696a761106e5de8",
+              "bytes": 6648
+            }
+          ],
+          "cairo_proof.json": {
+            "path": "data/outputs/pie-wrap/two-leaf/15627902-15627904.cairo_proof.json",
+            "sha256": "3b85397fbc4d84817560ed15b6aac0a69e35998a15b524ef1a672a8b7480ed85",
+            "bytes": 7968445
+          },
+          "leaf_proof.json": {
+            "path": "data/outputs/pie-wrap/two-leaf/15627902-15627904.leaf_proof.json",
+            "sha256": "01ed69eb3083e2d3e91acd77b1bad060907374cdb924f024132864f072804a1c",
+            "bytes": 728230
+          }
+        },
+        {
+          "pie": "15627905-15627907",
+          "inputs": [
+            {
+              "path": "data/inputs/15627905-15627907.prover_input.cpi",
+              "sha256": "3c898538af071069385e5deae70a086a31e8ab87198fa198cd6fcf0f3e3d1557",
+              "bytes": 23565556
+            },
+            {
+              "path": "data/inputs/15627905-15627907.preimage.hex.json",
+              "sha256": "de65c3023ea4c6aecf03fe57de44ebf627a8d0cc47663b24e555013cb7199251",
+              "bytes": 6128
+            }
+          ],
+          "cairo_proof.json": {
+            "path": "data/outputs/pie-wrap/two-leaf/15627905-15627907.cairo_proof.json",
+            "sha256": "4ed79546a1406bbc35fc3afb1044d06f6196abf9aac444499e3fa644bb748ca0",
+            "bytes": 7956866
+          },
+          "leaf_proof.json": {
+            "path": "data/outputs/pie-wrap/two-leaf/15627905-15627907.leaf_proof.json",
+            "sha256": "fe69619f1b3a699038fdaea6a4e5dd420d0f0fba0a17a01e681ab5cfbe901400",
+            "bytes": 728230
+          }
+        }
+      ]
+    }
+  ],
+  "pie_wrap_references": {
+    "two-leaf": [
+      {
+        "pie": "15627902-15627904",
+        "inputs": [
+          {
+            "path": "data/inputs/15627902-15627904.prover_input.cpi",
+            "sha256": "c92a1ecd5baf8651e88c6d96f016cfa2646bbda2cf646fec9bc0558c200a6f81",
+            "bytes": 32988292
+          },
+          {
+            "path": "data/inputs/15627902-15627904.preimage.hex.json",
+            "sha256": "6ba24d85781e221b35fda38e3550e7107a3202952f61c3ff2696a761106e5de8",
+            "bytes": 6648
+          }
+        ],
+        "cairo_proof.json": {
+          "path": "data/outputs/pie-wrap/two-leaf/15627902-15627904.cairo_proof.json",
+          "sha256": "3b85397fbc4d84817560ed15b6aac0a69e35998a15b524ef1a672a8b7480ed85",
+          "bytes": 7968445
+        },
+        "leaf_proof.json": {
+          "path": "data/outputs/pie-wrap/two-leaf/15627902-15627904.leaf_proof.json",
+          "sha256": "01ed69eb3083e2d3e91acd77b1bad060907374cdb924f024132864f072804a1c",
+          "bytes": 728230
+        }
+      },
+      {
+        "pie": "15627905-15627907",
+        "inputs": [
+          {
+            "path": "data/inputs/15627905-15627907.prover_input.cpi",
+            "sha256": "3c898538af071069385e5deae70a086a31e8ab87198fa198cd6fcf0f3e3d1557",
+            "bytes": 23565556
+          },
+          {
+            "path": "data/inputs/15627905-15627907.preimage.hex.json",
+            "sha256": "de65c3023ea4c6aecf03fe57de44ebf627a8d0cc47663b24e555013cb7199251",
+            "bytes": 6128
+          }
+        ],
+        "cairo_proof.json": {
+          "path": "data/outputs/pie-wrap/two-leaf/15627905-15627907.cairo_proof.json",
+          "sha256": "4ed79546a1406bbc35fc3afb1044d06f6196abf9aac444499e3fa644bb748ca0",
+          "bytes": 7956866
+        },
+        "leaf_proof.json": {
+          "path": "data/outputs/pie-wrap/two-leaf/15627905-15627907.leaf_proof.json",
+          "sha256": "fe69619f1b3a699038fdaea6a4e5dd420d0f0fba0a17a01e681ab5cfbe901400",
+          "bytes": 728230
+        }
+      }
+    ],
+    "eight-leaf": [
+      {
+        "pie": "15578420_15578429",
+        "inputs": [
+          {
+            "path": "data/inputs/pie-wrap/eight-leaf/15578420_15578429.cpi",
+            "sha256": "0a5a7e234c8dc90a17b7beee9a3254c4e785df426fe8386a80d08301043bea95",
+            "bytes": 41432832
+          },
+          {
+            "path": "data/inputs/pie-wrap/eight-leaf/15578420_15578429.preimage.hex.json",
+            "sha256": "2a4dff480545ea599f1bbdaa50cbfb7869db043f1399c968fc2990aff18753b8",
+            "bytes": 7383
+          }
+        ],
+        "leaf_proof.json": {
+          "path": "data/outputs/pie-wrap/eight-leaf/15578420_15578429.leaf_proof.json",
+          "sha256": "a93df956a2e53a49f3abf040c7b731f0638b1207a6d8e997c2fe9515de970a7f",
+          "bytes": 728230
+        }
+      },
+      {
+        "pie": "15578430_15578439",
+        "inputs": [
+          {
+            "path": "data/inputs/pie-wrap/eight-leaf/15578430_15578439.cpi",
+            "sha256": "02d59c91953737f37842ddba146e0a03c4e2959ae6520d8d4721d09066f791db",
+            "bytes": 28496296
+          },
+          {
+            "path": "data/inputs/pie-wrap/eight-leaf/15578430_15578439.preimage.hex.json",
+            "sha256": "1ef4ae145feb9f3e017d2f237d65d76a73e472f7fae1506947abbc0a0ee27f1f",
+            "bytes": 6199
+          }
+        ],
+        "leaf_proof.json": {
+          "path": "data/outputs/pie-wrap/eight-leaf/15578430_15578439.leaf_proof.json",
+          "sha256": "42ca539f4e73a5845451c447bacf85fd4ab0197fc51438d1b62d60b75deef628",
+          "bytes": 728230
+        }
+      },
+      {
+        "pie": "15578440_15578449",
+        "inputs": [
+          {
+            "path": "data/inputs/pie-wrap/eight-leaf/15578440_15578449.cpi",
+            "sha256": "ca950389462dd54acad8016df6861f0c324e246fc6c2acabec2a6fabf8db69d6",
+            "bytes": 101602848
+          },
+          {
+            "path": "data/inputs/pie-wrap/eight-leaf/15578440_15578449.preimage.hex.json",
+            "sha256": "1b15f8015e7e81027baa65e5c0ba4d2599faefe4589ce74b5a01be3f99e55729",
+            "bytes": 13242
+          }
+        ],
+        "leaf_proof.json": {
+          "path": "data/outputs/pie-wrap/eight-leaf/15578440_15578449.leaf_proof.json",
+          "sha256": "0c511192ce493322ce96414dbac0234fa826fc0582abcf00ae80b59e34a13667",
+          "bytes": 728230
+        }
+      },
+      {
+        "pie": "15578450_15578459",
+        "inputs": [
+          {
+            "path": "data/inputs/pie-wrap/eight-leaf/15578450_15578459.cpi",
+            "sha256": "e1538eb41645affc33c4d07ee68df23e02d6fa18210459433b9b7f287edfd35f",
+            "bytes": 35068616
+          },
+          {
+            "path": "data/inputs/pie-wrap/eight-leaf/15578450_15578459.preimage.hex.json",
+            "sha256": "d16f829dcddc50d64443facaa6dd7e57f36a41b96276457cb04ed35c01d8c14c",
+            "bytes": 6677
+          }
+        ],
+        "leaf_proof.json": {
+          "path": "data/outputs/pie-wrap/eight-leaf/15578450_15578459.leaf_proof.json",
+          "sha256": "3837c36d86e081d1e624c45380864ce91665902459463fccf59915392dbd4825",
+          "bytes": 728230
+        }
+      },
+      {
+        "pie": "15578460_15578469",
+        "inputs": [
+          {
+            "path": "data/inputs/pie-wrap/eight-leaf/15578460_15578469.cpi",
+            "sha256": "3c0dabc686d3f9bd21c60b5cfc34152aeaf968be5f6a08f9ed6045c2f89d2403",
+            "bytes": 68209072
+          },
+          {
+            "path": "data/inputs/pie-wrap/eight-leaf/15578460_15578469.preimage.hex.json",
+            "sha256": "b975b9d4863728909c724fd38d58db093c5a956ad4ebe982e4d3f85bd44de8bb",
+            "bytes": 9825
+          }
+        ],
+        "leaf_proof.json": {
+          "path": "data/outputs/pie-wrap/eight-leaf/15578460_15578469.leaf_proof.json",
+          "sha256": "e0b24afefbf7d6ec2284e767a9fb2b2b7324bcc44981a78a0453759a80cb4af5",
+          "bytes": 728230
+        }
+      },
+      {
+        "pie": "15578470_15578479",
+        "inputs": [
+          {
+            "path": "data/inputs/pie-wrap/eight-leaf/15578470_15578479.cpi",
+            "sha256": "4e7c715b6662888eebd06422a3637057debf60b1836230ed8a8142813e23e94a",
+            "bytes": 59561780
+          },
+          {
+            "path": "data/inputs/pie-wrap/eight-leaf/15578470_15578479.preimage.hex.json",
+            "sha256": "8125d135e51c8bd2ffb5e51bef107748061fa5981386bdf25cb19eb8d6efb4ba",
+            "bytes": 7290
+          }
+        ],
+        "leaf_proof.json": {
+          "path": "data/outputs/pie-wrap/eight-leaf/15578470_15578479.leaf_proof.json",
+          "sha256": "187969c5e55e05a3d77cd400b8f878f03ea42243c225ffa6bf0ffd6f987c54e0",
+          "bytes": 728230
+        }
+      },
+      {
+        "pie": "15578480_15578489",
+        "inputs": [
+          {
+            "path": "data/inputs/pie-wrap/eight-leaf/15578480_15578489.cpi",
+            "sha256": "516c15a9f555a1558df83af345d5f139c98159513d9503dfd1ae7604d5e84bea",
+            "bytes": 43026564
+          },
+          {
+            "path": "data/inputs/pie-wrap/eight-leaf/15578480_15578489.preimage.hex.json",
+            "sha256": "e63f0d01754b7139057c34ad2643f8d9888d73c6cb59ecbc11bb28a37dc1117a",
+            "bytes": 8344
+          }
+        ],
+        "leaf_proof.json": {
+          "path": "data/outputs/pie-wrap/eight-leaf/15578480_15578489.leaf_proof.json",
+          "sha256": "75627997e85c1ba59129f6e3fa1e62f8746b712d09c9630e945a5dafcf8a9715",
+          "bytes": 728230
+        }
+      },
+      {
+        "pie": "15578490_15578499",
+        "inputs": [
+          {
+            "path": "data/inputs/pie-wrap/eight-leaf/15578490_15578499.cpi",
+            "sha256": "8c52ae001ed05e39ed0e57b222a4b6d16277f87145f7ff0d4f7c3a6db2dd7a2a",
+            "bytes": 41306884
+          },
+          {
+            "path": "data/inputs/pie-wrap/eight-leaf/15578490_15578499.preimage.hex.json",
+            "sha256": "a3e4d62c1201b9897bef84ab6af0ebb07b7c50c299445f3a314eab7d9b4d1f3f",
+            "bytes": 7871
+          }
+        ],
+        "leaf_proof.json": {
+          "path": "data/outputs/pie-wrap/eight-leaf/15578490_15578499.leaf_proof.json",
+          "sha256": "17656ba969f8935b30112f693d99c0cd9ffdd089776727bc5ad8c5378a4b883f",
+          "bytes": 728230
+        }
+      }
+    ]
+  },
+  "note": "PIE proof hash-only entries lack retained historical H200 bytes; root proofs are present."
+}

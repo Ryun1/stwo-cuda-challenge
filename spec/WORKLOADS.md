@@ -5,7 +5,8 @@ come from the hash-pinned `fixtures/public-v1.json` plus a private holdout with
 the same shape categories. Every ranked case starts after SNOS PIE generation
 and pinned Rust bootloader adaptation, at immutable `.cpi` bytes. The public
 manifest records hashes, sizes, block spans, and source receipts; fixture
-blobs are mounted outside Git under `STWO_FIXTURE_ROOT`.
+inputs are checked in under `data/inputs` using Git LFS; the judge may mount
+an equivalent read-only store under `STWO_FIXTURE_ROOT`.
 
 The PIE family deliberately spans ordinary one-block and multi-block inputs,
 high EC/Poseidon, bitwise, Pedersen, and a near-capacity one-block case. A
@@ -40,7 +41,10 @@ proof stages. The final applicative Starknet aggregate proof is outside this
 epoch because that separate binding stage is not yet qualified in the pinned
 pipeline. The contract will gain a new epoch when it is.
 
-The judge runs the independent official Rust verifier on every Cairo proof.
+The judge runs the pinned official Rust `verify_cairo` verifier for standalone
+PIE proofs. Production-registry pipeline leaves use the separately pinned
+Rust `verify_cairo_ex` helper (`verify_cairo_cuda_json`) with the registry's
+Blake2s-M31/lifted format; the ordinary PIE verifier cannot parse that format.
 For recursive proofs, this v1 judge requires byte equality to the pinned
 reference proof and output/packed-tree digests, in addition to source input,
 registry, and security checks. The exact-reference rule is a deliberately
@@ -50,8 +54,9 @@ verifier request and gate.
 Any candidate that changes the statement, skips a proof stage, lowers FRI
 security, or proves on CPU fails.
 
-Large PIE CPI blobs and preprocessed assets must not be committed to this repo.
-The fixture publisher writes a signed/content-addressed manifest and uploads
-each blob once. The H200 worker fetches by digest to persistent local storage
+Large public PIE CPI blobs and retained proofs live under `data/` in Git LFS;
+the 2 GiB preprocessing asset stays outside Git. The optional fixture
+publisher writes a content-addressed index and uploads each blob once.
+The H200 worker fetches by digest to persistent local storage
 before timing, hashes every file before use, and uses a read-only bind mount.
 Private holdouts use different files from the public development set.

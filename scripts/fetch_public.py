@@ -30,8 +30,8 @@ def read(base: str, relative: str):
 def fetch(base: str, output: Path, manifest_path: Path,
           case_ids: set[str] | None = None) -> int:
     output = output.resolve()
-    if output.is_relative_to(ROOT):
-        raise ValueError("fixture store must live outside the challenge repository")
+    if output.is_relative_to(ROOT) and output != ROOT / "data/inputs":
+        raise ValueError("inside the challenge repository, fixtures must use data/inputs")
     manifest_bytes = manifest_path.read_bytes()
     manifest = json.loads(manifest_bytes)
     with read(base, "index.json") as source:
@@ -84,7 +84,8 @@ def fetch(base: str, output: Path, manifest_path: Path,
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--base", required=True, help="HTTPS URL or local static bundle directory")
-    parser.add_argument("--out", type=Path, required=True, help="external fixture store")
+    parser.add_argument("--out", type=Path, default=ROOT / "data/inputs",
+                        help="fixture store; defaults to data/inputs")
     parser.add_argument("--manifest", type=Path, default=ROOT / "fixtures/public-v1.json")
     parser.add_argument("--case-id", action="append", help="fetch only selected cases for smoke work")
     args = parser.parse_args()

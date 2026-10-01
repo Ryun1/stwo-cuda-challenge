@@ -33,6 +33,7 @@ jobs:
       PREPROCESSED_ASSET: ${{ vars.STWO_PREPROCESSED_ASSET }}
       CUDA_ARTIFACT_DIR: ${{ vars.STWO_CUDA_ARTIFACT_DIR }}
       CAIRO_VERIFIER: ${{ vars.STWO_CAIRO_VERIFIER }}
+      REGISTRY_CAIRO_VERIFIER: ${{ vars.STWO_REGISTRY_CAIRO_VERIFIER }}
       RANKED_MANIFEST: ${{ vars.STWO_RANKED_MANIFEST }}
       RUN_DIR: .runs/${{ inputs.submission_id }}-${{ github.run_id }}-${{ github.run_attempt }}
     concurrency:
@@ -58,6 +59,7 @@ jobs:
             --preprocessed "$PREPROCESSED_ASSET" \
             --artifact-dir "$CUDA_ARTIFACT_DIR" \
             --cairo-verifier "$CAIRO_VERIFIER" \
+            --registry-cairo-verifier "$REGISTRY_CAIRO_VERIFIER" \
             --manifest "$RANKED_MANIFEST" \
             --out "$RUN_DIR"
       - name: Publish redacted receipt

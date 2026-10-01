@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Materialize hash-pinned public CPI and fold fixtures outside this Git repo."""
+"""Materialize hash-pinned public CPI and fold fixtures; verify data/inputs."""
 
 import argparse
 import json
@@ -41,14 +41,14 @@ def main() -> None:
     parser.add_argument("--proving-root", type=Path, help="proving@5a7c5ed checkout")
     parser.add_argument("--cpu-recursion-prover", type=Path, help="produce the pinned two- and eight-leaf fixtures")
     parser.add_argument("--rust-reducer", type=Path, help="check eight-leaf root against pinned Rust reducer")
-    parser.add_argument("--out", type=Path, required=True, help="fixture store outside Git")
+    parser.add_argument("--out", type=Path, required=True, help="fixture store")
     parser.add_argument("--verify-only", action="store_true", help="check existing bytes, no downloads")
     args = parser.parse_args()
     manifest = json.loads((ROOT / "fixtures/public-v1.json").read_text())
     source = args.source.resolve()
     out = args.out.resolve()
-    if out.is_relative_to(ROOT):
-        parser.error("fixture blobs must live outside the challenge repository")
+    if out.is_relative_to(ROOT) and not (args.verify_only and out == ROOT / "data/inputs"):
+        parser.error("inside the repository, only --verify-only on data/inputs is supported")
     if not args.verify_only:
         source_commit = subprocess.check_output(
             ["git", "-C", str(source), "rev-parse", "HEAD"], text=True).strip()

@@ -22,7 +22,9 @@ def run_arm(args, source: Path, out: Path, round_id: int) -> list[dict]:
     command = [sys.executable, str(ROOT / "harness/run_arm.py"),
                "--source", str(source), "--fixtures", str(args.fixtures),
                "--preprocessed", str(args.preprocessed), "--artifact-dir", str(args.artifact_dir),
-               "--cairo-verifier", str(args.cairo_verifier), "--round", str(round_id),
+               "--cairo-verifier", str(args.cairo_verifier),
+               "--registry-cairo-verifier", str(args.registry_cairo_verifier),
+               "--round", str(round_id),
                "--manifest", str(args.manifest), "--config", str(args.config), "--out", str(out)]
     if args.tier == "smoke":
         cases = json.loads(args.manifest.read_text())["cases"]
@@ -82,6 +84,7 @@ def main() -> None:
     parser.add_argument("--preprocessed", type=Path, required=True)
     parser.add_argument("--artifact-dir", type=Path, required=True)
     parser.add_argument("--cairo-verifier", type=Path, required=True)
+    parser.add_argument("--registry-cairo-verifier", type=Path, required=True)
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--manifest", type=Path, default=ROOT / "fixtures/public-v1.json")
     parser.add_argument("--config", type=Path, default=ROOT / "benchmark.json")

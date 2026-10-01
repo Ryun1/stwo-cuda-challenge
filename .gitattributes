@@ -1,0 +1,5 @@
+data/inputs/*.cpi filter=lfs diff=lfs merge=lfs -text
+data/outputs/**/*.proof filter=lfs diff=lfs merge=lfs -text
+data/outputs/**/*.cairo_proof.json filter=lfs diff=lfs merge=lfs -text
+data/outputs/**/*.leaf_proof.json filter=lfs diff=lfs merge=lfs -text
+data/inputs/**/*.cpi filter=lfs diff=lfs merge=lfs -text

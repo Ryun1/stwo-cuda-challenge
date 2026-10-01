@@ -129,6 +129,16 @@ def proof_verifier(verifier: Path, proof: Path, out: Path) -> None:
         raise RuntimeError("pinned official Rust Cairo verifier rejected proof")
 
 
+def registry_proof_verifier(verifier: Path, proof: Path, out: Path) -> None:
+    """Verify a production-registry Blake2s-M31 leaf with verify_cairo_ex."""
+    out.mkdir(parents=True, exist_ok=True)
+    result = subprocess.run([str(verifier), str(proof)], capture_output=True,
+                            text=True, timeout=120)
+    (out / "registry-verdict.log").write_text(result.stdout + result.stderr)
+    if result.returncode != 0 or not result.stdout.startswith("RUST_CAIRO_VERIFIER=accepted "):
+        raise RuntimeError("pinned Rust production-registry Cairo verifier rejected proof")
+
+
 def flags(plan: int) -> dict:
     return dict(verified=True, protocol_ok=True, gpu_resident=True,
                 statement_ok=True, input_hash_ok=True, planned_arena_bytes=plan)
@@ -141,6 +151,8 @@ def main() -> None:
     parser.add_argument("--preprocessed", type=Path, required=True)
     parser.add_argument("--artifact-dir", type=Path, required=True)
     parser.add_argument("--cairo-verifier", type=Path, required=True)
+    parser.add_argument("--registry-cairo-verifier", type=Path,
+                        help="pinned verify_cairo_cuda_json for production-registry leaves")
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--round", type=int, required=True)
     parser.add_argument("--manifest", type=Path, default=ROOT / "fixtures/public-v1.json")
@@ -157,6 +169,9 @@ def main() -> None:
              args.case_id is None or case["id"] in args.case_id]
     if not cases or (args.case_id and len(cases) != len(set(args.case_id))):
         parser.error("unknown or duplicate case ID")
+    if not args.preflight and any(case["family"] == "pipeline" for case in cases):
+        if not args.registry_cairo_verifier or not args.registry_cairo_verifier.is_file():
+            parser.error("pipeline cases require --registry-cairo-verifier")
     source = args.source.resolve()
     fixture_root = args.fixtures.resolve()
     if not fixture_root.is_dir() or args.round < 0:
@@ -242,31 +257,83 @@ def main() -> None:
                 plan = max(arenas)
             else:
                 case_dir.mkdir()
-                script = source / "tools/starknet-block-collector/circuit_pipeline.py"
-                names = [Path(item["path"]).name.removesuffix(".prover_input.cpi")
-                         for item in case["inputs"]]
-                command = ["python3", str(script), "--backend", "cuda-resident",
-                           "--adapted-dir", str(fixture_root), "--adapted-format", "compact",
-                           "--circuit-prover", str(circuit), "--out", str(case_dir / "result")]
-                if case.get("mode") == "batch_integrated":
-                    command.extend(["--cuda-batch", "--cuda-integrated"])
-                elif case.get("mode") != "serial":
-                    raise RuntimeError("unknown pipeline mode")
-                measured = run([*command, *names], case_dir / "run", nvml, env)
-                receipt = json.loads((case_dir / "result/receipt.json").read_text())
-                if receipt.get("backend") != "cuda-resident" or len(receipt.get("leaves", [])) != 2:
-                    raise RuntimeError("invalid resident pipeline receipt")
-                if receipt.get("registry_sha256") != sha(source / "vectors/circuit/official/registries/production.json"):
-                    raise RuntimeError("pipeline registry digest differs")
-                for key, item in (("proof_sha256", "proof"), ("outputs_sha256", "outputs"),
-                                  ("packed_sha256", "packed")):
-                    if receipt["root"][item]["sha256"] != case["expected_root"][key]:
-                        raise RuntimeError(f"pipeline root {item} differs")
-                for name in names:
-                    proof_verifier(args.cairo_verifier, case_dir / "result" / f"{name}.cairo_proof.json",
-                                   case_dir / f"cairo-verification-{name}")
-                plan = max(row["cairo_cuda_metrics"]["planned_arena_bytes"]
-                           for row in receipt["leaves"])
+                if case.get("mode") in ("serial_external", "batch_integrated_external"):
+                    case_file = case_dir / "case.json"
+                    case_file.write_text(json.dumps(case))
+                    command = ["python3", str(ROOT / "harness/run_pipeline.py"),
+                               "--source", str(source), "--fixtures", str(fixture_root),
+                               "--case", str(case_file), "--out", str(case_dir / "result")]
+                    measured = run(command, case_dir / "run", nvml, env)
+                    receipt = json.loads((case_dir / "result/receipt.json").read_text())
+                    if (receipt.get("schema") != "stwo-cuda-external-pipeline-v1" or
+                            receipt.get("backend") != "cuda-resident" or
+                            receipt.get("mode") != case["mode"] or
+                            len(receipt.get("leaves", [])) != len(case["inputs"])):
+                        raise RuntimeError("invalid external pipeline receipt")
+                    if receipt.get("registry_sha256") != sha(source / "vectors/circuit/official/registries/production.json"):
+                        raise RuntimeError("pipeline registry digest differs")
+                    for key in ("proof_sha256", "outputs_sha256", "packed_sha256"):
+                        if receipt["root"][key] != case["expected_root"][key]:
+                            raise RuntimeError(f"external pipeline root {key} differs")
+                    arenas = []
+                    for index, item in enumerate(case["inputs"]):
+                        registry_proof_verifier(args.registry_cairo_verifier,
+                                                case_dir / "result" / f"leaf-{index}.cairo_proof.json",
+                                                case_dir / f"cairo-verification-{index}")
+                        report = json.loads((case_dir / "result" / f"leaf-{index}.cairo_report.json").read_text())
+                        trials = report.get("completed_trials", [])
+                        if len(trials) != 1 or bytes(trials[0]["input_sha256"]).hex() != item["sha256"]:
+                            raise RuntimeError("external pipeline Cairo proof is not bound to fixture")
+                        trial = trials[0]
+                        if trial["verdict"]["provider"] != "nvidia_cuda" or any(
+                                trial["verdict"]["counters"][key] != 0 for key in
+                                ("cpu_fallback_attempts", "cpu_fallbacks_completed")):
+                            raise RuntimeError("external pipeline used non-CUDA proving")
+                        if any(trial["protocol"].get(key) != value for key, value in
+                               {"query_count": 70, "query_pow_bits": 26,
+                                "interaction_pow_bits": 24, "log_blowup_factor": 1,
+                                "fri_fold_step": 1, "log_last_layer_degree_bound": 0,
+                                "channel_salt": 0, "preprocessed_variant": "canonical"}.items()):
+                            raise RuntimeError("external pipeline security profile differs")
+                        arenas.append(trial["planned_arena_bytes"])
+                    import re
+                    profiles = []
+                    for log in receipt["logs"]:
+                        content = Path(log).read_text(errors="replace")
+                        matches = re.findall(r"circuit-cuda circuit-proof profile=(internal|root) resident_ns=\d+ "
+                                             r"verify_ns=\d+ convert_ns=\d+ arena_bytes=(\d+)", content)
+                        profiles.extend(profile for profile, _ in matches)
+                        arenas.extend(int(arena) for _, arena in matches)
+                    if profiles != ["internal"] * len(case["inputs"]) + ["root"] * (len(case["inputs"]) - 1):
+                        raise RuntimeError("external pipeline circuit proof telemetry differs")
+                    plan = max(arenas)
+                else:
+                    script = source / "tools/starknet-block-collector/circuit_pipeline.py"
+                    names = [Path(item["path"]).name.removesuffix(".prover_input.cpi")
+                             for item in case["inputs"]]
+                    command = ["python3", str(script), "--backend", "cuda-resident",
+                               "--adapted-dir", str(fixture_root), "--adapted-format", "compact",
+                               "--circuit-prover", str(circuit), "--out", str(case_dir / "result")]
+                    if case.get("mode") == "batch_integrated":
+                        command.extend(["--cuda-batch", "--cuda-integrated"])
+                    elif case.get("mode") != "serial":
+                        raise RuntimeError("unknown pipeline mode")
+                    measured = run([*command, *names], case_dir / "run", nvml, env)
+                    receipt = json.loads((case_dir / "result/receipt.json").read_text())
+                    if receipt.get("backend") != "cuda-resident" or len(receipt.get("leaves", [])) != 2:
+                        raise RuntimeError("invalid resident pipeline receipt")
+                    if receipt.get("registry_sha256") != sha(source / "vectors/circuit/official/registries/production.json"):
+                        raise RuntimeError("pipeline registry digest differs")
+                    for key, item in (("proof_sha256", "proof"), ("outputs_sha256", "outputs"),
+                                      ("packed_sha256", "packed")):
+                        if receipt["root"][item]["sha256"] != case["expected_root"][key]:
+                            raise RuntimeError(f"pipeline root {item} differs")
+                    for name in names:
+                        registry_proof_verifier(args.registry_cairo_verifier,
+                                                case_dir / "result" / f"{name}.cairo_proof.json",
+                                                case_dir / f"cairo-verification-{name}")
+                    plan = max(row["cairo_cuda_metrics"]["planned_arena_bytes"]
+                               for row in receipt["leaves"])
             row = {"case_id": case["id"], "round": args.round, "time_s": measured["time_s"],
                    "peak_device_bytes": measured["peak_device_bytes"], **flags(plan)}
             rows.append(row)

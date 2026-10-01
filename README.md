@@ -16,7 +16,8 @@ lives in this challenge repository's harness.
 That source commit is on the upstream `main` branch (PR #204). Paths under
 `/tmp` in development receipts are local build outputs or generated fixtures;
 they are not required source checkouts. `./setup.sh` obtains the exact source
-commit, and all public fixtures are addressed by hashes in
+commit. Public inputs and retained reference proofs are under
+[`data/`](data/README.md), with the scored fixture contract in
 [`fixtures/public-v1.json`](fixtures/public-v1.json).
 
 Start with [TASK.md](TASK.md). The fixed contract is [benchmark.json](benchmark.json),
@@ -68,33 +69,44 @@ For a prepared H200 host, the complete local command is:
   --candidate-patch candidate/changes.patch \
   --baseline-attestation .cache/attestations/baseline.json \
   --candidate-attestation .cache/attestations/candidate.json \
-  --fixtures ../stwo-cuda-challenge-fixtures \
+  --fixtures data/inputs \
   --preprocessed /absolute/path/preprocessed-canonical.bin \
   --artifact-dir /absolute/path/cuda-artifact-cache \
   --cairo-verifier /absolute/path/stwo-cairo-official-verifier \
+  --registry-cairo-verifier /absolute/path/verify_cairo_cuda_json \
   --out .runs/local-smoke
 ```
 
 Use `--tier qualify` for all cases once and `--tier rank` for paired scoring.
-The fixture path above is an example; in deployment the judge mounts its own
-read-only content-addressed store. Run `python3 scripts/materialize_public.py
---source workspace/stwo-zig --out /absolute/fixture/store --verify-only` to
-check every public blob before spending GPU time. The canonical preprocessing
+The checked-in public files use Git LFS: run `git lfs pull` and
+`python3 scripts/check_data.py` after cloning. In deployment the judge may
+mount its own read-only content-addressed store with the same manifest-relative
+paths. Run `python3 scripts/materialize_public.py --source workspace/stwo-zig
+--out data/inputs --verify-only` to check the original public fixture contract
+before spending GPU time. The canonical preprocessing
 asset is generated from the pinned prover with `zig build
 cairo-preprocessed-export -Doptimize=ReleaseFast` followed by
 `zig-out/bin/cairo-preprocessed-export /absolute/path/preprocessed-canonical.bin
 canonical`. Keep the 2 GiB asset outside Git.
+
+Standalone PIE proofs use the pinned `stwo-cairo-official-verifier`. Registry
+leaf proofs use the pinned Rust `verify_cairo_cuda_json` helper because their
+Blake2s-M31/lifted proof shape is different. Build that helper from the pinned
+baseline source with `cargo +nightly-2026-01-15 build --release --bin
+verify_cairo_cuda_json --manifest-path
+workspace/baseline/tools/stwo-circuit-oracle-rs/Cargo.toml`, and pass its
+result as `--registry-cairo-verifier`.
 
 Participants do not need the PIE API key. The operator creates a static
 content-addressed bundle once, then hosts that directory over HTTPS:
 
 ```sh
 python3 scripts/publish_public.py \
-  --source ../stwo-cuda-challenge-fixtures \
+  --source data/inputs \
   --out ../stwo-cuda-challenge-public-bundle
 python3 scripts/fetch_public.py \
   --base https://your-fixture-host.example/challenge/h200-v1 \
-  --out ../stwo-cuda-challenge-fixtures
+  --out data/inputs
 ```
 
 The downloader checks the committed manifest digest and every blob SHA-256.
