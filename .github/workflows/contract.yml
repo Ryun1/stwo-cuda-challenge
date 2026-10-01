@@ -14,4 +14,5 @@ jobs:
         run: |
           python3 -m unittest discover -s tests -v
           python3 harness/check_contract.py
+          python3 scripts/check_data.py --pointers
           python3 -m py_compile harness/*.py scripts/*.py service/*.py

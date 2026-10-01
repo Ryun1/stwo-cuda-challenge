@@ -2,15 +2,17 @@
 """Verify the checked-in public inputs and expected proof artifacts."""
 
 import argparse
+import hashlib
 import json
 from pathlib import Path
+import subprocess
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from scripts.import_public_data import ROOT, sha
 
 
-def verify(deep: bool = True) -> tuple[int, int]:
+def verify(deep: bool = True, pointers: bool = False) -> tuple[int, int]:
     manifest = json.loads((ROOT / "fixtures/public-v1.json").read_text())
     catalog = json.loads((ROOT / "data/catalog.json").read_text())
     if (catalog["contract_epoch"] != manifest["contract_epoch"] or
@@ -25,13 +27,28 @@ def verify(deep: bool = True) -> tuple[int, int]:
         if (path.is_absolute() or ".." in path.parts or not path.parts or
                 path.parts[0] != "data"):
             raise ValueError(f"unsafe data path: {path}")
-        target = (ROOT / path).resolve()
-        if not target.is_relative_to(ROOT / "data") or not target.is_file():
-            raise ValueError(f"data file missing: {path}")
-        if target.stat().st_size != entry["bytes"]:
-            raise ValueError(f"data size differs: {path}")
-        if deep and sha(target) != entry["sha256"]:
-            raise ValueError(f"data hash differs: {path}")
+        if pointers:
+            object_name = f"HEAD:{path}"
+            size = int(subprocess.check_output(["git", "cat-file", "-s", object_name],
+                                               cwd=ROOT, text=True))
+            if size > 2_000_000:
+                raise ValueError(f"large data blob bypasses Git LFS: {path}")
+            blob = subprocess.check_output(["git", "show", object_name], cwd=ROOT)
+            if blob.startswith(b"version https://git-lfs.github.com/spec/v1\n"):
+                expected = (f"version https://git-lfs.github.com/spec/v1\n"
+                            f"oid sha256:{entry['sha256']}\nsize {entry['bytes']}\n").encode()
+                if blob != expected:
+                    raise ValueError(f"Git LFS pointer differs: {path}")
+            elif len(blob) != entry["bytes"] or hashlib.sha256(blob).hexdigest() != entry["sha256"]:
+                raise ValueError(f"committed data blob differs: {path}")
+        else:
+            target = (ROOT / path).resolve()
+            if not target.is_relative_to(ROOT / "data") or not target.is_file():
+                raise ValueError(f"data file missing: {path}")
+            if target.stat().st_size != entry["bytes"]:
+                raise ValueError(f"data size differs: {path}")
+            if deep and sha(target) != entry["sha256"]:
+                raise ValueError(f"data hash differs: {path}")
         previous = files.setdefault(str(path), entry["sha256"])
         if previous != entry["sha256"]:
             raise ValueError(f"data catalog has conflicting hash: {path}")
@@ -82,8 +99,10 @@ def verify(deep: bool = True) -> tuple[int, int]:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--fast", action="store_true", help="check sizes and references only")
+    parser.add_argument("--pointers", action="store_true",
+                        help="verify Git blobs and LFS pointers without downloading large objects")
     args = parser.parse_args()
-    tasks, files = verify(not args.fast)
+    tasks, files = verify(not args.fast, args.pointers)
     print(f"verified {tasks} challenge tasks and {files} unique data files")
 
 
