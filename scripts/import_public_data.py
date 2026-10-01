@@ -126,7 +126,7 @@ def import_data(fixtures: Path, two_leaf: Path, eight_leaf: Path) -> dict:
                                       "sha256": case["expected_proof_sha256"],
                                       "bytes": proof.stat().st_size}
             else:
-                task["proof_file"] = None  # Historical H200 proof bytes were not retained.
+                task["proof_file"] = None
         else:
             fold = ("eight-leaf" if case["id"] == "recursion:eight-distinct-pie-fold"
                     else "two-leaf")
@@ -141,7 +141,10 @@ def import_data(fixtures: Path, two_leaf: Path, eight_leaf: Path) -> dict:
         "fixture_manifest": "fixtures/public-v1.json",
         "tasks": tasks,
         "pie_wrap_references": wrapped,
-        "note": "PIE proof hash-only entries lack retained historical H200 bytes; root proofs are present.",
+        "note": ("All six standalone PIE proof files match pinned H200 digests."
+                 if all(task.get("proof_file") is not None for task in tasks
+                        if task["family"] == "pie") else
+                 "Some standalone PIE proof files are not yet retained; hashes remain pinned."),
     }
     (ROOT / "data/catalog.json").write_text(json.dumps(catalog, indent=2) + "\n")
     return catalog

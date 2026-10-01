@@ -28,7 +28,9 @@ def verify(deep: bool = True, pointers: bool = False) -> tuple[int, int]:
                 path.parts[0] != "data"):
             raise ValueError(f"unsafe data path: {path}")
         if pointers:
-            object_name = f"HEAD:{path}"
+            # Check the Git index so newly staged LFS outputs are validated
+            # before commit as well as after checkout in CI.
+            object_name = f":{path}"
             size = int(subprocess.check_output(["git", "cat-file", "-s", object_name],
                                                cwd=ROOT, text=True))
             if size > 2_000_000:
@@ -104,7 +106,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--fast", action="store_true", help="check sizes and references only")
     parser.add_argument("--pointers", action="store_true",
-                        help="verify Git blobs and LFS pointers without downloading large objects")
+                        help="verify staged Git blobs and LFS pointers without downloading large objects")
     args = parser.parse_args()
     tasks, files = verify(not args.fast, args.pointers)
     print(f"verified {tasks} challenge tasks and {files} unique data files")

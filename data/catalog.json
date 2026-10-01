@@ -16,7 +16,11 @@
         }
       ],
       "expected_proof_sha256": "fcc457fee3bcaca85efd97d308daa1a16e849c633b4571144417543158eb1eeb",
-      "proof_file": null
+      "proof_file": {
+        "path": "data/outputs/pie/15582797_15582797.proof.json",
+        "sha256": "fcc457fee3bcaca85efd97d308daa1a16e849c633b4571144417543158eb1eeb",
+        "bytes": 7239488
+      }
     },
     {
       "id": "pie:15603744_15603744",
@@ -30,7 +34,11 @@
         }
       ],
       "expected_proof_sha256": "bf963282d104deec420cdaec8e26f8b2fd235c2e2374a7a4f0b8d6eedf0f3109",
-      "proof_file": null
+      "proof_file": {
+        "path": "data/outputs/pie/15603744_15603744.proof.json",
+        "sha256": "bf963282d104deec420cdaec8e26f8b2fd235c2e2374a7a4f0b8d6eedf0f3109",
+        "bytes": 7217473
+      }
     },
     {
       "id": "pie:15581148_15581148",
@@ -44,7 +52,11 @@
         }
       ],
       "expected_proof_sha256": "fd4f9c27bad18a2c7f089b8af5eb7c8e3a3db1c7aeb3d38f3ad5b142f6061b3c",
-      "proof_file": null
+      "proof_file": {
+        "path": "data/outputs/pie/15581148_15581148.proof.json",
+        "sha256": "fd4f9c27bad18a2c7f089b8af5eb7c8e3a3db1c7aeb3d38f3ad5b142f6061b3c",
+        "bytes": 7481734
+      }
     },
     {
       "id": "pie:15590913_15590913",
@@ -58,7 +70,11 @@
         }
       ],
       "expected_proof_sha256": "23ef11f1f7bbf0b31d6ede197bd67d2548975b951283c4cedc0fb6148e443af9",
-      "proof_file": null
+      "proof_file": {
+        "path": "data/outputs/pie/15590913_15590913.proof.json",
+        "sha256": "23ef11f1f7bbf0b31d6ede197bd67d2548975b951283c4cedc0fb6148e443af9",
+        "bytes": 7205051
+      }
     },
     {
       "id": "pie:15588777_15588780",
@@ -72,7 +88,11 @@
         }
       ],
       "expected_proof_sha256": "8f24b5a15dceb4c1b850c39e9fb699acf9e1ddcecac2fc993960ce783c8ca310",
-      "proof_file": null
+      "proof_file": {
+        "path": "data/outputs/pie/15588777_15588780.proof.json",
+        "sha256": "8f24b5a15dceb4c1b850c39e9fb699acf9e1ddcecac2fc993960ce783c8ca310",
+        "bytes": 7406394
+      }
     },
     {
       "id": "pie:15591789_15591789",
@@ -86,7 +106,11 @@
         }
       ],
       "expected_proof_sha256": "3c39b6f0a59aec76ccc5c215a2530905a0617306260e3590284f11931578151a",
-      "proof_file": null
+      "proof_file": {
+        "path": "data/outputs/pie/15591789_15591789.proof.json",
+        "sha256": "3c39b6f0a59aec76ccc5c215a2530905a0617306260e3590284f11931578151a",
+        "bytes": 7202900
+      }
     },
     {
       "id": "recursion:two-leaf-wrap-fold",
@@ -595,5 +619,5 @@
       }
     ]
   },
-  "note": "PIE proof hash-only entries lack retained historical H200 bytes; root proofs are present."
+  "note": "All six standalone PIE proof files are present, match the pinned H200 digests byte-for-byte, and passed the pinned Rust verifier."
 }

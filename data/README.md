@@ -8,7 +8,7 @@ rankings (latency, memory, balanced) use the **same** tasks and data.
 
 | Operation | Inputs | Expected outputs |
 | --- | --- | --- |
-| PIE proving (six scored cases) | `inputs/*.cpi` | Canonical H200 Cairo proof SHA-256 in `catalog.json` and `fixtures/public-v1.json`. The historical raw proof files were not retained. |
+| PIE proving (six scored cases) | `inputs/*.cpi` | `outputs/pie/*.proof.json`, each byte-identical to its pinned H200 SHA-256. |
 | PIE wrap (two-leaf CUDA reference) | `inputs/*.prover_input.cpi` and `inputs/*.preimage.hex.json` | `outputs/pie-wrap/two-leaf/*.cairo_proof.json` and `*.leaf_proof.json`. |
 | PIE wrap (eight-leaf CPU reference) | `inputs/pie-wrap/eight-leaf/*.cpi` and `*.preimage.hex.json` | `outputs/pie-wrap/eight-leaf/*.leaf_proof.json`. These are CPU reference wrap proofs; they are **not** claimed to be official H200 Cairo JSON proofs. |
 | Fold (two leaves) | `inputs/*.leaf.json` | `outputs/fold/two-leaf/root.proof`, `root_outputs.json`, `root_packed.json`. |
@@ -28,7 +28,7 @@ for matching; the judge still regenerates proofs, independently verifies Cairo
 proofs, and checks the canonical security profile.
 
 Large CPI and proof files use Git LFS. Run `git lfs pull` after cloning and
-`python3 scripts/check_data.py` to hash all 54 unique public files. The public
+`python3 scripts/check_data.py` to hash all 60 unique public files. The public
 runner accepts this checkout directly with `--fixtures data/inputs`. A fixture
 host can also populate missing inputs with `python3 scripts/fetch_public.py
 --base HTTPS_BUNDLE_URL --out data/inputs`; that downloader checks the manifest
@@ -37,12 +37,8 @@ existing judge-owned stores and receipts remain compatible.
 Both scored full-pipeline modes use these CPI and preimage files directly;
 the runner does not need the original PIE ZIPs or a separate adaptation step.
 
-The six standalone PIE proof hashes are valid output obligations, but their
-raw historical proof JSON was not saved by the original H200 sweep. To fill
-`outputs/pie/`, rerun those six inputs on a qualified H200 at the pinned source
-and use `python3 scripts/collect_pie_proofs.py --arm-dir PATH_TO_H200_ARM
---verifier .cache/rust-official/release/stwo-cairo-official-verifier`.
-The importer checks all six pinned hashes and independently verifies the
-proofs before updating this catalog.
-Do not substitute CPU-formatted Cairo JSON for an independently verified H200
-proof. Until then, `catalog.json` sets `proof_file` to `null` for those cases.
+The original H200 sweep saved only hashes for the six standalone PIE proofs.
+They were reproduced on the pinned Metal product: all six JSON files match
+those H200 hashes byte-for-byte and passed the pinned official Rust verifier.
+The exact files and provenance are in [`outputs/pie/`](outputs/pie/README.md).
+The judge still proves each input afresh on H200 and verifies the result.
