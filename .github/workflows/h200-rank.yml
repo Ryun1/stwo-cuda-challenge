@@ -42,6 +42,7 @@ jobs:
       REGISTRY_CAIRO_VERIFIER: ${{ vars.STWO_REGISTRY_CAIRO_VERIFIER }}
       RANKED_MANIFEST: ${{ vars.STWO_RANKED_MANIFEST }}
       RECEIPT_SIGNING_KEY: ${{ vars.STWO_RECEIPT_SIGNING_KEY }}
+      STWO_SANDBOX_IMAGE: ${{ vars.STWO_SANDBOX_IMAGE }}
       RUN_DIR: .runs/${{ inputs.submission_id }}-${{ github.run_id }}-${{ github.run_attempt }}
     concurrency:
       group: stwo-h200-exclusive

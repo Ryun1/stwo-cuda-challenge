@@ -8,6 +8,7 @@ import json
 import math
 import os
 from pathlib import Path
+import shutil
 import statistics
 import subprocess
 import sys
@@ -18,6 +19,8 @@ from attestation import validate_record
 
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+from harness.sandbox import IMAGE
 
 
 def setting(name: str, fallback: Path) -> Path:
@@ -31,7 +34,8 @@ def run_arm(args, source: Path, out: Path, round_id: int) -> list[dict]:
                "--cairo-verifier", str(args.cairo_verifier),
                "--registry-cairo-verifier", str(args.registry_cairo_verifier),
                "--round", str(round_id),
-               "--manifest", str(args.manifest), "--config", str(args.config), "--out", str(out)]
+               "--manifest", str(args.manifest), "--config", str(args.config),
+               "--sandbox-image", args.sandbox_image, "--out", str(out)]
     if args.tier == "smoke":
         cases = json.loads(args.manifest.read_text())["cases"]
         for family in ("pie", "recursion"):
@@ -106,7 +110,15 @@ def main() -> None:
     parser.add_argument("--manifest", type=Path,
                         default=setting("STWO_RANKED_MANIFEST", ROOT / "fixtures/public-v1.json"))
     parser.add_argument("--config", type=Path, default=ROOT / "benchmark.json")
+    parser.add_argument("--sandbox-image", default=os.environ.get("STWO_SANDBOX_IMAGE"),
+                        help="locally present Docker/NVIDIA image pinned by SHA-256")
     args = parser.parse_args()
+    if not args.sandbox_image or not IMAGE.fullmatch(args.sandbox_image):
+        parser.error("--sandbox-image must be a pinned SHA-256 image ID or repository digest")
+    if not shutil.which("docker") or subprocess.run(
+            ["docker", "image", "inspect", args.sandbox_image],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode:
+        parser.error("pinned sandbox image is not present in the local Docker daemon")
     for path in (args.baseline_source, args.candidate_source, args.candidate_patch,
                  args.baseline_attestation, args.candidate_attestation, args.fixtures,
                  args.preprocessed, args.cairo_verifier, args.registry_cairo_verifier,

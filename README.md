@@ -48,7 +48,9 @@ timer, a source-only static estimate, or an unverified proof.
 ## Development loop
 
 1. Prepare a Linux CUDA/H200 workspace with Zig 0.15.2, CUDA/nvcc, Cargo,
-   `nightly-2026-01-15`, and `git lfs pull`. `./setup.sh` creates separate
+   `nightly-2026-01-15`, Docker/NVIDIA Container Toolkit, and `git lfs pull`.
+   Build and pin the [judge sandbox image](spec/H200_RUNBOOK.md), then set
+   `STWO_SANDBOX_IMAGE` to its local SHA-256 image ID. `./setup.sh` creates separate
    pinned baseline and editable source checkouts; it does not download private
    PIEs.
 2. Work in `workspace/stwo-zig` under the allowed CUDA source paths. Run

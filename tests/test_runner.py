@@ -1,14 +1,17 @@
 import hashlib
 import json
 from pathlib import Path
+import subprocess
 import sys
 import tempfile
+import time
 import unittest
+from unittest.mock import patch
 
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-from harness.run_arm import candidate_env, checked_file, run
+from harness.run_arm import candidate_env, checked_file, checked_output, run
 
 
 class FakeMemory:
@@ -74,6 +77,77 @@ class RunnerTests(unittest.TestCase):
                 checked_file(root, {**item, "sha256": "0" * 64})
             with self.assertRaises(ValueError):
                 checked_file(root, {**item, "path": "../input.cpi"})
+
+    def test_candidate_output_cannot_redirect_host_verifier(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            case = root / "case"
+            case.mkdir()
+            proof = case / "proof.json"
+            proof.write_text("valid output bytes")
+            self.assertEqual(checked_output(proof, case), proof)
+            secret = root / "judge-only.json"
+            secret.write_text("private")
+            proof.unlink()
+            proof.symlink_to(secret)
+            with self.assertRaisesRegex(ValueError, "symlink"):
+                checked_output(proof, case)
+            with self.assertRaisesRegex(ValueError, "escapes"):
+                checked_output(case / ".." / "judge-only.json", case)
+
+    def test_container_exit_code_and_cleanup_are_judge_owned(self):
+        with tempfile.TemporaryDirectory() as directory:
+            container_id = "a" * 64
+            calls = []
+            def invoke(command, **_kwargs):
+                calls.append(command)
+                if command[:2] == ["docker", "create"]:
+                    return subprocess.CompletedProcess(command, 0, container_id + "\n")
+                if command[:2] == ["docker", "inspect"]:
+                    return subprocess.CompletedProcess(command, 0, "7\n")
+                return subprocess.CompletedProcess(command, 0, "")
+            class Attached:
+                returncode = 0
+                def wait(self, timeout=None):
+                    time.sleep(.04)
+                    return 0
+            command = ["docker", "create", "--name", "stwo-judge-test", "image"]
+            with patch("harness.run_arm.subprocess.run", side_effect=invoke), patch(
+                    "harness.run_arm.subprocess.Popen", return_value=Attached()):
+                with self.assertRaisesRegex(RuntimeError, "candidate failed"):
+                    run(command, Path(directory) / "case", FakeNvml(), {},
+                        timeout=3, container=True)
+            self.assertIn(["docker", "rm", "--force", container_id], calls)
+            measurement = json.loads((Path(directory) / "case/measurement.json").read_text())
+            self.assertEqual(measurement["exit_code"], 7)
+
+    def test_container_timeout_kills_gpu_process_and_removes_it(self):
+        with tempfile.TemporaryDirectory() as directory:
+            container_id = "b" * 64
+            calls = []
+            def invoke(command, **_kwargs):
+                calls.append(command)
+                return subprocess.CompletedProcess(command, 0,
+                                                   container_id + "\n" if command[1] == "create" else "")
+            class Attached:
+                pid = 12345
+                returncode = 137
+                waits = 0
+                def wait(self, timeout=None):
+                    self.waits += 1
+                    if self.waits == 1:
+                        time.sleep(.04)
+                        raise subprocess.TimeoutExpired("docker start", timeout)
+                    return self.returncode
+            command = ["docker", "create", "--name", "stwo-judge-test", "image"]
+            with patch("harness.run_arm.subprocess.run", side_effect=invoke), patch(
+                    "harness.run_arm.subprocess.Popen", return_value=Attached()), patch(
+                    "harness.run_arm.os.killpg"):
+                with self.assertRaisesRegex(RuntimeError, "candidate failed"):
+                    run(command, Path(directory) / "case", FakeNvml(), {},
+                        timeout=1, container=True)
+            self.assertIn(["docker", "kill", container_id], calls)
+            self.assertIn(["docker", "rm", "--force", container_id], calls)
 
 
 if __name__ == "__main__":

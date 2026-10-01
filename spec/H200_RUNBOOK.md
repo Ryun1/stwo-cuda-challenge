@@ -10,7 +10,9 @@ fixture transfers, and hash checks happen before its timed proof work.
 
 1. Use one exclusive H200 SXM with the device capacity in `benchmark.json`.
    Install Zig 0.15.2, CUDA/nvcc, Cargo, `nightly-2026-01-15`, Git LFS,
-   OpenSSL with Ed25519 support, and the GitHub CLI. Keep service state,
+   OpenSSL with Ed25519 support, Docker Engine, the
+   [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html),
+   and the GitHub CLI. Keep service state,
    private fixtures, credentials, and the
    2 GiB canonical preprocessing asset outside this repository.
 2. Clone the challenge, then run `git lfs pull`, `./setup.sh --build`, and
@@ -20,6 +22,22 @@ fixture transfers, and hash checks happen before its timed proof work.
    The baseline and
    candidate source roots and binary hashes must match their build
    attestations before ranking.
+   Build `harness/sandbox.Dockerfile` from an NVIDIA CUDA runtime base pinned
+   by repository digest:
+
+   ```sh
+   docker build -f harness/sandbox.Dockerfile \
+     --build-arg CUDA_RUNTIME_IMAGE='nvidia/cuda:VERSION-runtime-ubuntu24.04@sha256:BASE_DIGEST' \
+     -t stwo-judge:h200-v1 .
+   ```
+
+   Replace the placeholders with the qualified CUDA runtime version and full
+   base digest. Record the local image ID returned by
+   `docker image inspect --format '{{.Id}}' IMAGE_TAG`. Set
+   `STWO_SANDBOX_IMAGE` to that `sha256:` ID. The judge refuses a mutable tag
+   or an image absent from the local daemon. Verify the exact image and driver
+   combination with one sandboxed PIE, fold, and full-pipeline proof before
+   ranking; local plan tests alone do not qualify it.
 3. Copy the separately held ranked fixture store and manifest to read-only
    judge-owned paths. Check every digest before the H200 proof loop:
 
@@ -46,7 +64,7 @@ fixture transfers, and hash checks happen before its timed proof work.
    RECEIPT.json --signature RECEIPT.signature.json --public-key operator-public.pem`.
    Candidate sandbox qualification must precede use of the key on an H200 job.
 5. Register one online self-hosted runner with the default `self-hosted` label
-   and `h200-stwo-challenge`. Configure all nine repository variable names
+   and `h200-stwo-challenge`. Configure all ten repository variable names
    used in `.github/workflows/h200-rank.yml` with nonempty paths. Run
    `python3 service/activation.py --repository OWNER/REPO`; it prints no
    variable values and must pass before dispatch. Qualify process isolation,

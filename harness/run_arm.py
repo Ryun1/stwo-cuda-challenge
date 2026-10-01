@@ -9,12 +9,18 @@ import json
 import os
 from pathlib import Path
 import signal
+import shutil
 import subprocess
+import sys
 import threading
 import time
 
-
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+from harness.sandbox import (CONTAINER_INPUTS, CONTAINER_SOURCE, CONTAINER_WORK, IMAGE,
+                             case_file as case_file_for_container,
+                             docker_command, stage_inputs, stage_runtime)
+
 RUNTIME_ENV = frozenset({
     "PATH", "LD_LIBRARY_PATH", "LANG", "LC_ALL", "TZ",
     "CUDA_VISIBLE_DEVICES", "CUDA_MODULE_LOADING", "CUDA_CACHE_DISABLE",
@@ -60,6 +66,25 @@ def checked_file(root: Path, item: dict, key: str = "path") -> Path:
     return path
 
 
+def checked_output(path: Path, root: Path) -> Path:
+    """Reject candidate-created links before the host reads an output."""
+    root = root.absolute()
+    path = path.absolute()
+    if not path.is_relative_to(root):
+        raise ValueError(f"candidate output is outside its case directory: {path}")
+    relative = path.relative_to(root)
+    if ".." in relative.parts:
+        raise ValueError(f"candidate output escapes its case directory: {path}")
+    current = root
+    for part in relative.parts:
+        current = current / part
+        if current.is_symlink():
+            raise ValueError(f"candidate output contains a symlink: {path}")
+    if not path.is_file():
+        raise ValueError(f"candidate output is missing: {path}")
+    return path
+
+
 class Nvml:
     def __init__(self, expected_bytes: int):
         self.api = ctypes.CDLL("libnvidia-ml.so.1")
@@ -87,16 +112,48 @@ class Nvml:
         self.api.nvmlShutdown()
 
 
-def run(command: list[str], out: Path, nvml: Nvml, env: dict, *, timeout: int = 900) -> dict:
+def run(command: list[str], out: Path, nvml: Nvml, env: dict, *, timeout: int = 900,
+        container: bool = False) -> dict:
     out = out.resolve()
     out.mkdir(parents=True)
+    out.chmod(0o700 if container else 0o777)
     home, temp, cache = (out / name for name in ("home", "tmp", "cuda-cache"))
     for directory in (home, temp, cache):
         directory.mkdir()
+        directory.chmod(0o700 if container else 0o777)
     runtime_env = {**env, "HOME": str(home), "TMPDIR": str(temp),
                    "CUDA_CACHE_PATH": str(cache)}
     initial = nvml.read().used
     if initial > 2_000_000_000:
+        raise RuntimeError("GPU became busy before run")
+    container_id = None
+    if container:
+        if command[:2] != ["docker", "create"]:
+            raise ValueError("container run requires a Docker create command")
+        container_name = command[command.index("--name") + 1]
+        try:
+            created = subprocess.run(command, capture_output=True, text=True,
+                                     env=runtime_env, timeout=30, check=True)
+        except Exception:
+            subprocess.run(["docker", "rm", "--force", container_name],
+                           capture_output=True, timeout=30, check=False)
+            raise
+        container_id = created.stdout.strip()
+        if len(container_id) != 64 or any(ch not in "0123456789abcdef" for ch in container_id):
+            subprocess.run(["docker", "rm", "--force", container_name],
+                           capture_output=True, timeout=30, check=False)
+            raise RuntimeError("Docker create did not return a container ID")
+    try:
+        initial = nvml.read().used
+    except Exception:
+        if container_id:
+            subprocess.run(["docker", "rm", "--force", container_id],
+                           capture_output=True, timeout=30, check=False)
+        raise
+    if initial > 2_000_000_000:
+        if container_id:
+            subprocess.run(["docker", "rm", "--force", container_id],
+                           capture_output=True, timeout=30, check=False)
         raise RuntimeError("GPU became busy before run")
     stop = threading.Event()
     peak = initial
@@ -118,25 +175,43 @@ def run(command: list[str], out: Path, nvml: Nvml, env: dict, *, timeout: int = 
     watcher.start()
     started = time.monotonic_ns()
     timed_out = False
-    with (out / "process.log").open("wb") as log:
-        process = subprocess.Popen(command, stdout=log, stderr=subprocess.STDOUT,
-                                   cwd=out, env=runtime_env, start_new_session=True)
-        try:
-            process.wait(timeout=timeout)
-        except subprocess.TimeoutExpired:
-            timed_out = True
-            os.killpg(process.pid, signal.SIGKILL)
-            process.wait()
-    elapsed = (time.monotonic_ns() - started) / 1e9
-    stop.set()
-    watcher.join()
+    try:
+        with (out / "process.log").open("wb") as log:
+            launched = ["docker", "start", "--attach", container_id] if container_id else command
+            process = subprocess.Popen(launched, stdout=log, stderr=subprocess.STDOUT,
+                                       cwd=out, env=runtime_env, start_new_session=True)
+            try:
+                process.wait(timeout=timeout)
+            except subprocess.TimeoutExpired:
+                timed_out = True
+                if container_id:
+                    try:
+                        subprocess.run(["docker", "kill", container_id],
+                                       capture_output=True, timeout=20, check=False)
+                    except subprocess.TimeoutExpired:
+                        pass
+                os.killpg(process.pid, signal.SIGKILL)
+                process.wait()
+        elapsed = (time.monotonic_ns() - started) / 1e9
+        exit_code = process.returncode
+        if container_id and not timed_out and exit_code == 0:
+            inspected = subprocess.run(["docker", "inspect", "--format", "{{.State.ExitCode}}",
+                                        container_id], capture_output=True, text=True,
+                                       timeout=20, check=True)
+            exit_code = int(inspected.stdout.strip())
+    finally:
+        stop.set()
+        watcher.join()
+        if container_id:
+            subprocess.run(["docker", "rm", "--force", container_id],
+                           capture_output=True, timeout=30, check=False)
     if sample_error or samples < 2:
         raise RuntimeError(f"invalid NVML sample: {sample_error}, count={samples}")
     result = {"time_s": elapsed, "peak_device_bytes": peak, "idle_device_bytes": initial,
-              "nvml_samples": samples, "nvml_period_s": 0.01, "exit_code": process.returncode,
+              "nvml_samples": samples, "nvml_period_s": 0.01, "exit_code": exit_code,
               "timed_out": timed_out, "command": command}
     (out / "measurement.json").write_text(json.dumps(result, indent=2) + "\n")
-    if process.returncode or timed_out:
+    if exit_code or timed_out:
         raise RuntimeError(f"candidate failed; inspect {out / 'process.log'}")
     return result
 
@@ -180,10 +255,15 @@ def main() -> None:
     parser.add_argument("--round", type=int, required=True)
     parser.add_argument("--manifest", type=Path, default=ROOT / "fixtures/public-v1.json")
     parser.add_argument("--config", type=Path, default=ROOT / "benchmark.json")
+    parser.add_argument("--sandbox-image", help="locally present Docker/NVIDIA image pinned by SHA-256")
     parser.add_argument("--case-id", action="append", help="run only selected public cases for smoke")
     parser.add_argument("--preflight", action="store_true", help="hash all selected fixtures without opening CUDA")
     args = parser.parse_args()
     args.out = args.out.resolve()
+    if not args.preflight and not args.sandbox_image:
+        parser.error("proof runs require --sandbox-image")
+    if args.sandbox_image and not IMAGE.fullmatch(args.sandbox_image):
+        parser.error("sandbox image must be pinned by SHA-256")
     config = json.loads(args.config.read_text())
     manifest = json.loads(args.manifest.read_text())
     if (manifest.get("contract_epoch") != config["contractEpoch"] or
@@ -209,6 +289,8 @@ def main() -> None:
         for path in (cairo, circuit, args.preprocessed, args.cairo_verifier):
             if not path.is_file():
                 parser.error(f"required asset missing: {path}")
+        if not args.artifact_dir.is_dir():
+            parser.error("CUDA artifact directory is missing")
     for case in cases:
         if case["family"] == "pie":
             checked_file(fixture_root, case["input"])
@@ -226,20 +308,49 @@ def main() -> None:
     env = candidate_env(os.environ, args.preprocessed, args.artifact_dir)
     args.out.mkdir(parents=True, exist_ok=True)
     try:
+        runtime = stage_runtime(source, args.out / "_runtime")
         for case in cases:
             case_dir = args.out / case["id"].replace(":", "_")
+            case_dir.mkdir(mode=0o777)
+            case_dir.chmod(0o777)
+            scratch = case_dir / "run"
+            scratch.mkdir(mode=0o777)
+            scratch.chmod(0o777)
+            for name in ("home", "tmp", "cuda-cache"):
+                directory = scratch / name
+                directory.mkdir(mode=0o777)
+                directory.chmod(0o777)
+            judge_dir = args.out / "_judge_runs" / case_dir.name
+            input_items = ([case["input"]] if case["family"] == "pie" else case["inputs"])
+            staged_files = []
+            for item in input_items:
+                staged_files.append((checked_file(fixture_root, item), item["path"], item["sha256"]))
+                if "preimage_path" in item:
+                    preimage = {"path": item["preimage_path"],
+                                "sha256": item["preimage_sha256"]}
+                    staged_files.append((checked_file(fixture_root, preimage),
+                                         preimage["path"], preimage["sha256"]))
+            staged = stage_inputs(args.out / "_case_inputs" / case_dir.name, staged_files)
+
+            def launch(inner: list[str]) -> list[str]:
+                return docker_command(args.sandbox_image, runtime, staged, case_dir,
+                                      args.preprocessed, args.artifact_dir, inner, env)
+
             if case["family"] == "pie":
-                case_dir.mkdir()
                 input_path = checked_file(fixture_root, case["input"])
                 proof = case_dir / "proof.json"
                 report = case_dir / "backend.json"
-                measured = run([str(cairo), "prove", "--backend", "cuda", "--input", str(input_path),
-                                "--output", str(proof), "--report-out", str(report), "--repeat", "1"],
-                               case_dir / "run", nvml, env)
-                proof_verifier(args.cairo_verifier, proof, case_dir)
-                if sha(proof) != case["expected_proof_sha256"]:
+                measured = run(launch([str(CONTAINER_SOURCE / "zig-out/bin/stwo-cairo-cuda"),
+                                "prove", "--backend", "cuda", "--input",
+                                str(CONTAINER_INPUTS / case["input"]["path"]),
+                                "--output", str(CONTAINER_WORK / "proof.json"),
+                                "--report-out", str(CONTAINER_WORK / "backend.json"),
+                                "--repeat", "1"]),
+                               judge_dir, nvml, env, container=True)
+                proof_verifier(args.cairo_verifier, checked_output(proof, case_dir), judge_dir)
+                if sha(checked_output(proof, case_dir)) != case["expected_proof_sha256"]:
                     raise RuntimeError(f"canonical Cairo proof differs: {case['id']}")
-                backend = json.loads(report.read_text())
+                backend = json.loads(checked_output(report, case_dir).read_text())
                 trials = backend.get("completed_trials", [])
                 if len(trials) != 1 or sha(input_path) != bytes(trials[0]["input_sha256"]).hex():
                     raise RuntimeError("Cairo backend receipt is not bound to fixture")
@@ -256,38 +367,43 @@ def main() -> None:
                     raise RuntimeError("Cairo security profile differs")
                 plan = trial["planned_arena_bytes"]
             elif case["family"] == "recursion":
-                case_dir.mkdir()
                 manifest_file = case_dir / "leaves.json"
-                manifest_file.write_text(json.dumps({"leaves": [str(checked_file(fixture_root, x))
+                manifest_file.write_text(json.dumps({"leaves": [str(CONTAINER_INPUTS / x["path"])
                                                               for x in case["inputs"]]}))
                 proof, outputs, packed = [case_dir / name for name in
                                           ("root.proof", "root_outputs.json", "root_packed.json")]
-                measured = run([str(circuit), "fold-tree", "--registry",
-                                str(source / "vectors/circuit/official/registries/production.json"),
-                                "--manifest", str(manifest_file), "--proof", str(proof),
-                                "--outputs", str(outputs), "--packed", str(packed)],
-                               case_dir / "run", nvml, env)
+                measured = run(launch([str(CONTAINER_SOURCE / "zig-out/bin/stwo-circuit-recursion-cuda"),
+                                "fold-tree", "--registry",
+                                str(CONTAINER_SOURCE / "vectors/circuit/official/registries/production.json"),
+                                "--manifest", str(CONTAINER_WORK / "leaves.json"),
+                                "--proof", str(CONTAINER_WORK / "root.proof"),
+                                "--outputs", str(CONTAINER_WORK / "root_outputs.json"),
+                                "--packed", str(CONTAINER_WORK / "root_packed.json")]),
+                               judge_dir, nvml, env, container=True)
                 for key, path in (("proof_sha256", proof), ("outputs_sha256", outputs),
                                   ("packed_sha256", packed)):
-                    if sha(path) != case["expected_root"][key]:
+                    if sha(checked_output(path, case_dir)) != case["expected_root"][key]:
                         raise RuntimeError(f"recursive root {key} differs")
                 import re
-                fold_log = (case_dir / "run/process.log").read_text(errors="replace")
+                fold_log = (judge_dir / "process.log").read_text(errors="replace")
                 arenas = [int(value) for value in re.findall(r"circuit-proof .*arena_bytes=(\d+)", fold_log)]
                 if not arenas:
                     raise RuntimeError("fold has no resident circuit proof telemetry")
                 plan = max(arenas)
             else:
-                case_dir.mkdir()
                 if case.get("mode") in ("serial", "batch_integrated",
                                         "serial_external", "batch_integrated_external"):
                     case_file = case_dir / "case.json"
-                    case_file.write_text(json.dumps(case))
-                    command = ["python3", str(ROOT / "harness/run_pipeline.py"),
-                               "--source", str(source), "--fixtures", str(fixture_root),
-                               "--case", str(case_file), "--out", str(case_dir / "result")]
-                    measured = run(command, case_dir / "run", nvml, env)
-                    receipt = json.loads((case_dir / "result/receipt.json").read_text())
+                    case_file.write_text(json.dumps(case_file_for_container(case)))
+                    command = ["python3", "/judge/harness/run_pipeline.py",
+                               "--source", str(CONTAINER_SOURCE),
+                               "--fixtures", str(CONTAINER_INPUTS),
+                               "--case", str(CONTAINER_WORK / "case.json"),
+                               "--out", str(CONTAINER_WORK / "result")]
+                    measured = run(launch(command), judge_dir, nvml, env,
+                                   container=True)
+                    receipt = json.loads(checked_output(
+                        case_dir / "result/receipt.json", case_dir).read_text())
                     if (receipt.get("schema") != "stwo-cuda-external-pipeline-v1" or
                             receipt.get("backend") != "cuda-resident" or
                             receipt.get("mode") != case["mode"] or
@@ -295,15 +411,21 @@ def main() -> None:
                         raise RuntimeError("invalid external pipeline receipt")
                     if receipt.get("registry_sha256") != sha(source / "vectors/circuit/official/registries/production.json"):
                         raise RuntimeError("pipeline registry digest differs")
-                    for key in ("proof_sha256", "outputs_sha256", "packed_sha256"):
-                        if receipt["root"][key] != case["expected_root"][key]:
+                    for key, filename in (("proof_sha256", "root.proof"),
+                                          ("outputs_sha256", "root_outputs.json"),
+                                          ("packed_sha256", "root_packed.json")):
+                        actual = sha(checked_output(case_dir / "result" / filename, case_dir))
+                        if (receipt["root"][key] != actual or
+                                actual != case["expected_root"][key]):
                             raise RuntimeError(f"external pipeline root {key} differs")
                     arenas = []
                     for index, item in enumerate(case["inputs"]):
                         registry_proof_verifier(args.registry_cairo_verifier,
-                                                case_dir / "result" / f"leaf-{index}.cairo_proof.json",
-                                                case_dir / f"cairo-verification-{index}")
-                        report = json.loads((case_dir / "result" / f"leaf-{index}.cairo_report.json").read_text())
+                                                checked_output(case_dir / "result" /
+                                                               f"leaf-{index}.cairo_proof.json", case_dir),
+                                                judge_dir / f"cairo-verification-{index}")
+                        report = json.loads(checked_output(case_dir / "result" /
+                                        f"leaf-{index}.cairo_report.json", case_dir).read_text())
                         trials = report.get("completed_trials", [])
                         if len(trials) != 1 or bytes(trials[0]["input_sha256"]).hex() != item["sha256"]:
                             raise RuntimeError("external pipeline Cairo proof is not bound to fixture")
@@ -322,7 +444,9 @@ def main() -> None:
                     import re
                     profiles = []
                     for log in receipt["logs"]:
-                        content = Path(log).read_text(errors="replace")
+                        content = checked_output(
+                            case_dir / Path(log).relative_to(CONTAINER_WORK), case_dir
+                        ).read_text(errors="replace")
                         matches = re.findall(r"circuit-cuda circuit-proof profile=(internal|root) resident_ns=\d+ "
                                              r"verify_ns=\d+ convert_ns=\d+ arena_bytes=(\d+)", content)
                         profiles.extend(profile for profile, _ in matches)
@@ -338,6 +462,8 @@ def main() -> None:
             (args.out / "arm.json").write_text(json.dumps(rows, indent=2) + "\n")
             print(f"{case['id']}: {row['time_s']:.3f}s, {row['peak_device_bytes']} bytes", flush=True)
     finally:
+        shutil.rmtree(args.out / "_case_inputs", ignore_errors=True)
+        shutil.rmtree(args.out / "_runtime", ignore_errors=True)
         nvml.close()
 
 
