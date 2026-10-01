@@ -37,7 +37,12 @@ candidate subprocess receives only a fixed runtime environment allowlist and
 the three judge-owned CUDA asset settings, never the host's service tokens.
 Authenticated submission and artifact-upload requests are limited over a
 rolling 24-hour window in SQLite before the service fetches Git objects or
-accepts an upload. Live dispatch also requires an
+accepts an upload.
+Artifacts have a 1 GiB per-file cap, a configurable 4 GiB default total
+storage budget, and a 2 GiB default free-disk reserve. The synchronous intake
+socket has a 30-second idle timeout. Uploaded artifacts are deduplicated by
+verified digest and remain outside the ranked judge.
+Live dispatch also requires an
 operator-chosen rolling GPU-minute budget and per-submitter-repository attempt
 budget. Each accepted attempt reserves the workflow's full 90-minute timeout;
 failed and cancelled attempts continue to count. This conservative accounting

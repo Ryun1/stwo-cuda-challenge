@@ -10,7 +10,8 @@ from unittest.mock import patch
 from urllib.error import HTTPError
 from urllib.request import ProxyHandler, Request, build_opener
 
-from service.intake import Handler, IntakeError, IntakeHTTPServer, Store, fetch_candidate
+from service.intake import (Handler, IntakeError, IntakeHTTPServer, StorageLimitError,
+                            Store, fetch_candidate)
 from service.build_worker import prepare
 from service.publish_receipt import publish
 from service.receipt_signature import sign, verify
@@ -78,6 +79,26 @@ class IntakeTests(unittest.TestCase):
             self.store.receive_artifact(first["id"], io.BytesIO(b"wrong"), 5)
         result = self.store.receive_artifact(first["id"], io.BytesIO(b"binary"), 6)
         self.assertEqual(result["artifact_uploaded"], 1)
+        self.assertEqual(self.store.receive_artifact(first["id"], io.BytesIO(b"binary"), 6)[
+                         "artifact_uploaded"], 1)
+
+    def test_artifact_store_enforces_total_budget_and_free_disk_reserve(self):
+        limited = Store(self.root / "limited-state", self.source, self.config,
+                        fetcher=self.fetcher, artifact_budget_bytes=5,
+                        free_disk_reserve_bytes=0)
+        row = limited.submit(self.repository, self.commit, hashlib.sha256(b"binary").hexdigest())
+        with self.assertRaisesRegex(StorageLimitError, "budget exhausted"):
+            limited.receive_artifact(row["id"], io.BytesIO(b"binary"), 6)
+        self.assertFalse(any(path.stat().st_size for path in
+                             (limited.state / "artifacts").iterdir()))
+        (limited.state / "artifacts" / hashlib.sha256(b"old").hexdigest()).write_bytes(b"old")
+        limited.artifact_budget_bytes = 8
+        with self.assertRaisesRegex(StorageLimitError, "budget exhausted"):
+            limited.receive_artifact(row["id"], io.BytesIO(b"binary"), 6)
+        limited.artifact_budget_bytes = 100
+        limited.free_disk_reserve_bytes = 1 << 62
+        with self.assertRaisesRegex(StorageLimitError, "free-disk reserve"):
+            limited.receive_artifact(row["id"], io.BytesIO(b"binary"), 6)
 
     def test_http_intake_and_status(self):
         Handler.store = self.store
@@ -100,6 +121,25 @@ class IntakeTests(unittest.TestCase):
                           headers={"Authorization": "Bearer " + "a" * 32})
         with opener.open(request, timeout=5) as response:
             self.assertEqual(json.load(response)["patch_sha256"], hashlib.sha256(self.patch).hexdigest())
+
+    def test_http_artifact_storage_budget_returns_507(self):
+        self.store.artifact_budget_bytes = 5
+        row = self.store.submit(self.repository, self.commit, hashlib.sha256(b"binary").hexdigest())
+        Handler.store = self.store
+        Handler.token = b"a" * 32
+        server = IntakeHTTPServer(("127.0.0.1", 0), Handler)
+        thread = threading.Thread(target=lambda: server.serve_forever(poll_interval=0.01),
+                                  daemon=True)
+        thread.start()
+        self.addCleanup(server.server_close)
+        self.addCleanup(server.shutdown)
+        request = Request(f"http://127.0.0.1:{server.server_port}/submissions/{row['id']}/artifact",
+                          data=b"binary", method="PUT",
+                          headers={"Authorization": "Bearer " + "a" * 32})
+        with self.assertRaises(HTTPError) as rejected:
+            build_opener(ProxyHandler({})).open(request, timeout=5)
+        self.assertEqual(rejected.exception.code, 507)
+        rejected.exception.close()
 
     def test_intake_rate_limit_persists_across_store_instances(self):
         Handler.store = self.store

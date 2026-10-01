@@ -3,6 +3,7 @@
 
 import argparse
 from contextlib import contextmanager
+import fcntl
 import hashlib
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import hmac
@@ -29,6 +30,8 @@ MAX_REQUEST = 16 * 1024
 MAX_PATCH = 16 * 1024 * 1024
 MAX_NOTES = 64 * 1024
 MAX_ARTIFACT = 1024 * 1024 * 1024
+DEFAULT_ARTIFACT_BUDGET = 4 * 1024 * 1024 * 1024
+DEFAULT_FREE_DISK_RESERVE = 2 * 1024 * 1024 * 1024
 
 
 class IntakeError(ValueError):
@@ -39,8 +42,20 @@ class RateLimitError(IntakeError):
     pass
 
 
+class StorageLimitError(IntakeError):
+    pass
+
+
 def sha(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
+
+
+def sha_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as source:
+        for block in iter(lambda: source.read(1 << 20), b""):
+            digest.update(block)
+    return digest.hexdigest()
 
 
 def git(args: list[str], cwd: Path, *, timeout: int = 45) -> bytes:
@@ -82,11 +97,17 @@ def fetch_candidate(repository: str, commit: str, directory: Path,
 
 class Store:
     def __init__(self, state: Path, source: Path, config: dict,
-                 *, fetcher=fetch_candidate):
+                 *, fetcher=fetch_candidate,
+                 artifact_budget_bytes: int = DEFAULT_ARTIFACT_BUDGET,
+                 free_disk_reserve_bytes: int = DEFAULT_FREE_DISK_RESERVE):
+        if artifact_budget_bytes < 1 or free_disk_reserve_bytes < 0:
+            raise IntakeError("artifact storage budget and disk reserve are invalid")
         self.state = state.resolve()
         self.source = source.resolve()
         self.config = config
         self.fetcher = fetcher
+        self.artifact_budget_bytes = artifact_budget_bytes
+        self.free_disk_reserve_bytes = free_disk_reserve_bytes
         if self.state.is_relative_to(ROOT) or self.state.is_relative_to(self.source):
             raise IntakeError("service state must live outside challenge and source repositories")
         if git(["rev-parse", "HEAD"], self.source).decode().strip() != config["sourceCommit"]:
@@ -257,8 +278,37 @@ class Store:
             raise IntakeError("submission has no declared artifact")
         if length < 1 or length > MAX_ARTIFACT:
             raise IntakeError("artifact exceeds intake limits")
+        # Serialize the disk-budget check and publication across intake
+        # processes, not just requests handled by one HTTPServer instance.
+        lock_path = self.state / "artifacts" / ".upload.lock"
+        with lock_path.open("a+b") as lock:
+            fcntl.flock(lock, fcntl.LOCK_EX)
+            try:
+                return self._receive_artifact_locked(row, stream, length)
+            finally:
+                fcntl.flock(lock, fcntl.LOCK_UN)
+
+    def _receive_artifact_locked(self, row: dict, stream, length: int) -> dict:
+        submission_id = row["id"]
         expected = row["artifact_sha256"]
         target = self.state / "artifacts" / expected
+        if target.exists():
+            if not target.is_file() or target.stat().st_size != length or sha_file(target) != expected:
+                raise IntakeError("stored artifact differs from its declared digest")
+            with self.db() as connection:
+                connection.execute("UPDATE submissions SET artifact_uploaded=1 WHERE id=?",
+                                   (submission_id,))
+            return self.get(submission_id)
+        # Count retained blobs under the cross-process lock before accepting
+        # another upload; the free-space reserve also protects the service
+        # state and trusted build workspace.
+        used = sum(path.stat().st_size for path in (self.state / "artifacts").iterdir()
+                   if path.is_file())
+        if used + length > self.artifact_budget_bytes:
+            raise StorageLimitError("stored artifact budget exhausted")
+        stat = os.statvfs(self.state)
+        if stat.f_bavail * stat.f_frsize - length < self.free_disk_reserve_bytes:
+            raise StorageLimitError("artifact upload would breach free-disk reserve")
         with tempfile.NamedTemporaryFile(dir=self.state / "tmp", delete=False) as temporary:
             path = Path(temporary.name)
             digest = hashlib.sha256()
@@ -378,11 +428,18 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json(200, row)
         except RateLimitError as error:
             self.send_json(429, {"error": str(error)})
+        except StorageLimitError as error:
+            self.send_json(507, {"error": str(error)})
         except ValueError as error:
             self.send_json(400, {"error": str(error)[:400]})
 
 
 class IntakeHTTPServer(HTTPServer):
+    def get_request(self):
+        request, address = super().get_request()
+        request.settimeout(30)
+        return request, address
+
     def server_bind(self) -> None:
         # HTTPServer calls getfqdn() here, which can stall on reverse DNS.
         TCPServer.server_bind(self)
@@ -398,16 +455,24 @@ def main() -> None:
     parser.add_argument("--token-file", type=Path)
     parser.add_argument("--max-intake-requests-24h", type=int, required=True,
                         help="global authenticated submission and upload request budget over rolling 24 hours")
+    parser.add_argument("--max-stored-artifact-bytes", type=int,
+                        default=DEFAULT_ARTIFACT_BUDGET)
+    parser.add_argument("--free-disk-reserve-bytes", type=int,
+                        default=DEFAULT_FREE_DISK_RESERVE)
     args = parser.parse_args()
     if args.max_intake_requests_24h < 1:
         parser.error("--max-intake-requests-24h must be positive")
+    if args.max_stored_artifact_bytes < 1 or args.free_disk_reserve_bytes < 0:
+        parser.error("artifact storage budget must be positive and free-disk reserve nonnegative")
     if args.listen not in ("127.0.0.1", "::1", "localhost") and not args.token_file:
         parser.error("a token file is required outside loopback")
     token = args.token_file.read_bytes().strip() if args.token_file else None
     if token is not None and len(token) < 32:
         parser.error("service token must be at least 32 bytes")
     config = json.loads((ROOT / "benchmark.json").read_text())
-    store = Store(args.state, args.source, config)
+    store = Store(args.state, args.source, config,
+                  artifact_budget_bytes=args.max_stored_artifact_bytes,
+                  free_disk_reserve_bytes=args.free_disk_reserve_bytes)
     Handler.store = store
     Handler.token = token
     Handler.max_requests_24h = args.max_intake_requests_24h
