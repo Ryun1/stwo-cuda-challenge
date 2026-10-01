@@ -46,7 +46,8 @@ Docker socket, blocked outbound network, read-only input and preprocessing
 asset, and writable case output. A separate manually dispatched
 `sandbox-probe.yml` workflow runs the same probe on a hosted Linux CPU using a
 disposable Ubuntu base image; it does not qualify NVIDIA access or the
-production image. On the H200, also try to access another GPU. Every denied
+production image. The first hosted [CPU probe run](https://github.com/teddyjfpender/stwo-cuda-challenge/actions/runs/36921996231)
+passed all ten checks on Linux as UID 65532. On the H200, also try to access another GPU. Every denied
 attempt must fail. Then run the pinned baseline proof for one PIE,
 one fold, and one full pipeline case inside the boundary, and require the
 same independently verified proof bytes as the unsandboxed baseline. Record
