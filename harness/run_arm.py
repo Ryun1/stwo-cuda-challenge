@@ -2,6 +2,7 @@
 """Run one H200 arm against hash-pinned fixtures and emit judge measurements."""
 
 import argparse
+from collections.abc import Mapping
 import ctypes
 import hashlib
 import json
@@ -14,6 +15,22 @@ import time
 
 
 ROOT = Path(__file__).resolve().parents[1]
+RUNTIME_ENV = frozenset({
+    "PATH", "LD_LIBRARY_PATH", "HOME", "TMPDIR", "LANG", "LC_ALL", "TZ",
+    "CUDA_VISIBLE_DEVICES", "CUDA_MODULE_LOADING", "CUDA_CACHE_DISABLE",
+    "CUDA_CACHE_MAXSIZE", "CUDA_CACHE_PATH", "CUDA_DEVICE_MAX_CONNECTIONS",
+    "NVIDIA_VISIBLE_DEVICES", "NVIDIA_DRIVER_CAPABILITIES",
+})
+
+
+def candidate_env(host: Mapping[str, str], preprocessed: Path,
+                  artifact_dir: Path) -> dict[str, str]:
+    """Keep service credentials out of the submitted prover's environment."""
+    env = {key: value for key, value in host.items() if key in RUNTIME_ENV}
+    env.update(STWO_CAIRO_CUDA_PREPROCESSED_COEFFICIENTS=str(preprocessed.resolve()),
+               STWO_CAIRO_CUDA_ARTIFACT_DIR=str(artifact_dir.resolve()),
+               STWO_CAIRO_CUDA_PREPROCESSED_VARIANT="canonical")
+    return env
 
 
 class Memory(ctypes.Structure):
@@ -199,9 +216,7 @@ def main() -> None:
         return
     nvml = Nvml(config["hardware"]["deviceBytes"])
     rows = []
-    env = dict(os.environ, STWO_CAIRO_CUDA_PREPROCESSED_COEFFICIENTS=str(args.preprocessed.resolve()),
-               STWO_CAIRO_CUDA_ARTIFACT_DIR=str(args.artifact_dir.resolve()),
-               STWO_CAIRO_CUDA_PREPROCESSED_VARIANT="canonical")
+    env = candidate_env(os.environ, args.preprocessed, args.artifact_dir)
     args.out.mkdir(parents=True, exist_ok=True)
     try:
         for case in cases:

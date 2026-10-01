@@ -7,7 +7,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-from harness.run_arm import checked_file, run
+from harness.run_arm import candidate_env, checked_file, run
 
 
 class FakeMemory:
@@ -20,6 +20,19 @@ class FakeNvml:
 
 
 class RunnerTests(unittest.TestCase):
+    def test_candidate_environment_excludes_host_credentials(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            env = candidate_env({"PATH": "/usr/bin", "CUDA_VISIBLE_DEVICES": "0",
+                                 "GH_TOKEN": "secret", "RUNPOD_API_KEY": "secret",
+                                 "ACTIONS_RUNTIME_TOKEN": "secret", "LD_PRELOAD": "bad.so",
+                                 "STWO_CAIRO_CUDA_SOURCE_DIAGNOSTIC": "/private"},
+                                root / "coefficients.bin", root / "artifacts")
+            self.assertEqual(env["CUDA_VISIBLE_DEVICES"], "0")
+            self.assertEqual(env["STWO_CAIRO_CUDA_PREPROCESSED_VARIANT"], "canonical")
+            self.assertFalse({"GH_TOKEN", "RUNPOD_API_KEY", "ACTIONS_RUNTIME_TOKEN",
+                              "LD_PRELOAD", "STWO_CAIRO_CUDA_SOURCE_DIAGNOSTIC"} & env.keys())
+
     def test_measures_process_not_claimed_time(self):
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory) / "trial"
