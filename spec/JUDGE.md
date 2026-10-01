@@ -87,13 +87,15 @@ It first checks that the GitHub repository has the required nonempty judge
 variables and an idle online runner with both `self-hosted` and
 `h200-stwo-challenge` labels. This prevents an unusable workflow from taking
 the single GPU queue slot.
-Each workflow run carries its immutable dispatcher attempt ID. Publication can
-only complete that exact active attempt; a delayed older run cannot update a
-retry. If a workflow is cancelled before the publication step, run
+Each workflow run claims its immutable dispatcher attempt ID before proving.
+The claim binds the submitted job, tier, track, and first GitHub run ID
+atomically; a duplicate or manually dispatched unreserved workflow cannot
+reach proof work. Publication can only complete that exact active attempt; a
+delayed older run cannot update a retry. If a workflow is cancelled before the publication step, run
 `python3 service/reconcile.py --state STATE --source BASELINE --repository
-OWNER/REPO` to compare active attempts with terminal GitHub Actions runs and
-release their queue slots. An attempt with no visible matching run stays active
-until the operator establishes what happened to the dispatch.
+OWNER/REPO` to compare claimed run IDs with terminal GitHub Actions runs and
+release their queue slots. An unclaimed attempt or one with no visible matching
+run stays active until the operator establishes what happened to the dispatch.
 The workflow is not triggered for every PR. Deployment still needs
 authentication, account rate limits, GPU-minute budgets, isolation, signing,
 and an operator queue policy.

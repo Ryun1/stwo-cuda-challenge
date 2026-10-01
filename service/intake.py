@@ -117,6 +117,10 @@ class Store:
                 submission_id TEXT NOT NULL, tier TEXT NOT NULL, track TEXT NOT NULL,
                 state TEXT NOT NULL, created_utc TEXT NOT NULL,
                 FOREIGN KEY (submission_id) REFERENCES submissions(id))""")
+            connection.execute("""CREATE TABLE IF NOT EXISTS judge_claims (
+                dispatch_id INTEGER PRIMARY KEY, github_run_id INTEGER NOT NULL UNIQUE,
+                github_run_attempt INTEGER NOT NULL, claimed_utc TEXT NOT NULL,
+                FOREIGN KEY (dispatch_id) REFERENCES judge_dispatches(id))""")
             connection.execute("""CREATE TABLE IF NOT EXISTS intake_requests (
                 id INTEGER PRIMARY KEY AUTOINCREMENT, created_utc TEXT NOT NULL)""")
 

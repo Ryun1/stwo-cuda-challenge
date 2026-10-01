@@ -50,8 +50,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: main
+          ref: ${{ github.sha }}
           persist-credentials: false
+      - name: Claim exact H200 dispatch
+        run: |
+          python3 service/claim_run.py \
+            --state "$SUBMISSION_STATE" --source "$BASELINE_ROOT/source" \
+            --submission-id "$SUBMISSION_ID" --tier "$TIER" --track "$TRACK" \
+            --dispatch-id "$ATTEMPT" --github-run-id "$GITHUB_RUN_ID" \
+            --github-run-attempt "$GITHUB_RUN_ATTEMPT"
       - name: Validate source and run trusted judge
         id: judge
         run: |

@@ -88,8 +88,9 @@ fixture transfers, and hash checks happen before its timed proof work.
    `--max-repository-attempts-24h` on each live call. For example, `540` and
    `3` allow at most six 90-minute reservations globally and three attempts
    from one repository in any rolling day. Failed and cancelled attempts count
-   conservatively. Each tier requires the prior receipt. The workflow
-   carries an immutable dispatch attempt ID, measures one exclusive H200,
+   conservatively. Each tier requires the prior receipt. The workflow checks
+   out the event's exact commit and atomically claims its dispatch against the
+   first GitHub run ID before measuring one exclusive H200,
    verifies every proof and root, and publishes a redacted receipt. The rank
    tier performs three paired ABBA rounds and writes all eligible score files
    from the same measurements.
@@ -97,9 +98,10 @@ fixture transfers, and hash checks happen before its timed proof work.
    per-case time and memory ratios, A/A dispersion, bootstrap intervals, and
    peak device-memory samples. Run the public and private baskets against the
    pinned baseline first; no historical H100/H200 time is a score denominator.
-   If a workflow was cancelled before receipt publication, run
-   `service/reconcile.py` so the completed GitHub run releases its dispatch
-   slot. A run not yet visible in GitHub stays reserved for operator review.
+   If a claimed workflow was cancelled before receipt publication, run
+   `service/reconcile.py` so the exact completed GitHub run releases its
+   dispatch slot. An unclaimed attempt or a run not yet visible in GitHub
+   stays reserved for operator review.
 4. Shut down the paid H200 host when proof qualification is complete. Retain
    immutable evidence and signed receipts in the external service store. Keep
    generated proofs and logs outside Git. Public reference outputs are already

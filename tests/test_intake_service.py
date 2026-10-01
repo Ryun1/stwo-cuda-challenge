@@ -15,6 +15,7 @@ from service.build_worker import prepare
 from service.publish_receipt import publish
 from service.receipt_signature import sign, verify
 from service.dispatch import WORKFLOW_TIMEOUT_MINUTES, dispatch
+from service.claim_run import claim
 from service.activation import REQUIRED_VARIABLES, check_activation
 from service.reconcile import reconcile, workflow_title
 
@@ -348,7 +349,14 @@ class IntakeTests(unittest.TestCase):
                 (submission_id,)).lastrowid
         title = workflow_title(attempt, submission_id, "smoke")
         self.assertEqual(reconcile(self.store, "owner/repo", fetch=lambda _: []),
-                         [{"attempt": attempt, "state": "awaiting_github_run"}])
+                         [{"attempt": attempt, "state": "unclaimed_dispatch"}])
+        self.assertEqual(reconcile(self.store, "owner/repo", fetch=lambda _: [
+            {"displayTitle": title, "status": "completed", "databaseId": 99}])[0]["state"],
+            "unclaimed_dispatch")
+        claim(self.store, submission_id, "smoke", "balanced", attempt, 42, 1)
+        self.assertEqual(reconcile(self.store, "owner/repo", fetch=lambda _: [
+            {"displayTitle": title, "status": "completed", "databaseId": 99}])[0]["state"],
+            "awaiting_claimed_github_run")
         self.assertEqual(reconcile(self.store, "owner/repo", fetch=lambda _: [
             {"displayTitle": title, "status": "in_progress", "databaseId": 42}])[0]["state"],
             "workflow_active")
@@ -358,6 +366,78 @@ class IntakeTests(unittest.TestCase):
              "databaseId": 42}])
         self.assertEqual(released[0]["state"], "released_terminal_run")
         self.assertEqual(self.store.get(submission_id)["judge_dispatch"]["state"], "failed")
+
+    def test_h200_claim_rejects_duplicate_or_mismatched_workflow(self):
+        row = self.store.submit(self.repository, self.commit)
+        submission_id = row["id"]
+        with self.store.db() as connection:
+            connection.execute("UPDATE submissions SET status='built' WHERE id=?", (submission_id,))
+            attempt = connection.execute("""INSERT INTO judge_dispatches
+                (submission_id, tier, track, state, created_utc)
+                VALUES (?, 'smoke', 'balanced', 'dispatched', '2026-10-01T00:00:00Z')""",
+                (submission_id,)).lastrowid
+        with self.assertRaises(IntakeError):
+            claim(self.store, submission_id, "smoke", "latency", attempt, 42, 1)
+        with self.assertRaises(IntakeError):
+            claim(self.store, submission_id, "smoke", "balanced", attempt, 42, 2)
+        self.assertEqual(claim(self.store, submission_id, "smoke", "balanced", attempt, 42, 1)["state"],
+                         "claimed")
+        with self.assertRaisesRegex(IntakeError, "already claimed"):
+            claim(self.store, submission_id, "smoke", "balanced", attempt, 43, 1)
+        workflow = (Path(__file__).resolve().parents[1] /
+                    ".github/workflows/h200-rank.yml").read_text()
+        self.assertLess(workflow.index("service/claim_run.py"), workflow.index("./benchmark.sh"))
+
+    def test_live_receipt_requires_claim_and_identifies_github_run(self):
+        row = self.store.submit(self.repository, self.commit)
+        submission_id = row["id"]
+        (self.store.state / "jobs" / submission_id / "build-attestation.json").write_text(
+            json.dumps({"source_commit": self.commit, "contract_epoch": "test-v1",
+                        "patch_sha256": row["patch_sha256"]}))
+        with self.store.db() as connection:
+            connection.execute("UPDATE submissions SET status='built' WHERE id=?", (submission_id,))
+            attempt = connection.execute("""INSERT INTO judge_dispatches
+                (submission_id, tier, track, state, created_utc)
+                VALUES (?, 'smoke', 'balanced', 'dispatched', '2026-10-01T00:00:00Z')""",
+                (submission_id,)).lastrowid
+        run = self.root / "claimed-run"
+        run.mkdir()
+        (run / "evidence.json").write_text(json.dumps({
+            "schema": "stwo-cuda-paired-evidence-v1", "contract_epoch": "test-v1",
+            "source_commit": self.commit, "tier": "smoke", "manifest_sha256": "1" * 64,
+            "candidate": [{"case_id": "pie:15582797_15582797", "time_s": 1}],
+        }))
+        with self.assertRaisesRegex(IntakeError, "actively claimed"):
+            publish(self.store, submission_id, run, "smoke", attempt=attempt)
+        self.assertEqual(self.store.get(submission_id)["judge_dispatch"]["state"],
+                         "dispatched")
+        claim(self.store, submission_id, "smoke", "balanced", attempt, 83, 1)
+        receipt = publish(self.store, submission_id, run, "smoke", attempt=attempt)
+        self.assertEqual(receipt["github_run_id"], 83)
+        self.assertEqual(receipt["dispatch_attempt"], attempt)
+
+    def test_claim_survives_dispatch_transport_error_after_github_accepts_run(self):
+        row = self.store.submit(self.repository, self.commit)
+        submission_id = row["id"]
+        prepare(self.store, submission_id)
+        (self.store.state / "jobs" / submission_id / "build-attestation.json").write_text("{}")
+        with self.store.db() as connection:
+            connection.execute("UPDATE submissions SET status='built' WHERE id=?", (submission_id,))
+
+        def accepted_then_error(_repo, _submission, tier, track, attempt):
+            self.assertEqual(self.store.get(submission_id)["judge_dispatch"]["state"],
+                             "dispatched")
+            claim(self.store, submission_id, tier, track, attempt, 77, 1)
+            raise RuntimeError("lost dispatch response")
+
+        with patch("service.dispatch.validate_record"):
+            with self.assertRaisesRegex(RuntimeError, "lost dispatch response"):
+                dispatch(self.store, submission_id, "smoke", "balanced", "owner/repo",
+                         sender=accepted_then_error,
+                         max_gpu_minutes_24h=WORKFLOW_TIMEOUT_MINUTES,
+                         max_repository_attempts_24h=1)
+        self.assertEqual(self.store.get(submission_id)["judge_dispatch"]["state"],
+                         "dispatched")
 
     def test_dispatch_enforces_tiers_and_one_active_gpu_slot(self):
         row = self.store.submit(self.repository, self.commit)

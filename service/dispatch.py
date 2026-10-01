@@ -79,19 +79,20 @@ def dispatch(store: Store, submission_id: str, tier: str, track: str,
         if repository_used >= max_repository_attempts_24h:
             raise IntakeError("rolling 24-hour repository attempt budget exhausted")
         cursor = connection.execute("""INSERT INTO judge_dispatches
-            (submission_id, tier, track, state, created_utc) VALUES (?, ?, ?, 'reserved', ?)""",
+            (submission_id, tier, track, state, created_utc) VALUES (?, ?, ?, 'dispatched', ?)""",
             (submission_id, tier, track, now.isoformat()))
         attempt = cursor.lastrowid
     try:
         sender(repository, submission_id, tier, track, attempt)
     except Exception:
         with store.db() as connection:
-            connection.execute("UPDATE judge_dispatches SET state='dispatch_failed' WHERE id=?",
-                               (attempt,))
+            # A transport error may occur after GitHub accepted the run. If
+            # the runner already claimed it, retain the live reservation.
+            connection.execute("""UPDATE judge_dispatches SET state='dispatch_failed'
+                WHERE id=? AND NOT EXISTS
+                (SELECT 1 FROM judge_claims WHERE dispatch_id=?)""",
+                (attempt, attempt))
         raise
-    with store.db() as connection:
-        connection.execute("""UPDATE judge_dispatches SET state='dispatched'
-            WHERE id=? AND state='reserved'""", (attempt,))
     return {**plan, "state": "dispatched", "attempt": attempt,
             "reserved_gpu_minutes": WORKFLOW_TIMEOUT_MINUTES}
 

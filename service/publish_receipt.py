@@ -24,10 +24,12 @@ def mark_failed(store: Store, submission_id: str, tier: str,
                 attempt: int | None = None) -> None:
     """Release the single-GPU slot even when the judge left bad artifacts."""
     with store.db() as connection:
-        active = connection.execute("""SELECT id FROM judge_dispatches
-            WHERE submission_id=? AND tier=? AND state IN ('reserved', 'dispatched')
-              AND (? IS NULL OR id=?) ORDER BY id DESC LIMIT 1""",
-            (submission_id, tier, attempt, attempt)).fetchone()
+        active = connection.execute("""SELECT d.id FROM judge_dispatches AS d
+            WHERE d.submission_id=? AND d.tier=? AND d.state IN ('reserved', 'dispatched')
+              AND (? IS NULL OR EXISTS
+                   (SELECT 1 FROM judge_claims WHERE dispatch_id=d.id))
+              AND (? IS NULL OR d.id=?) ORDER BY d.id DESC LIMIT 1""",
+            (submission_id, tier, attempt, attempt, attempt)).fetchone()
         if attempt is not None and active is None:
             return
         if active is not None:
@@ -57,16 +59,19 @@ def publish_validated(store: Store, submission_id: str, run_dir: Path, tier: str
         raise IntakeError("submission has no trusted build")
     if tier not in ("smoke", "qualify", "rank"):
         raise IntakeError("unknown judge tier")
+    github_run_id = None
     if attempt is not None:
         if attempt < 1:
             raise IntakeError("invalid dispatch attempt")
         with store.db() as connection:
-            active = connection.execute("""SELECT 1 FROM judge_dispatches
-                WHERE id=? AND submission_id=? AND tier=?
-                  AND state IN ('reserved', 'dispatched')""",
+            active = connection.execute("""SELECT c.github_run_id FROM judge_dispatches AS d
+                JOIN judge_claims AS c ON c.dispatch_id=d.id
+                WHERE d.id=? AND d.submission_id=? AND d.tier=?
+                  AND d.state='dispatched'""",
                 (attempt, submission_id, tier)).fetchone()
         if active is None:
-            raise IntakeError("dispatch attempt is no longer active")
+            raise IntakeError("dispatch attempt is not actively claimed")
+        github_run_id = active["github_run_id"]
     evidence_path = run_dir / "evidence.json"
     score_path = run_dir / "scorecard.json"
     if (not judge_succeeded or not evidence_path.is_file() or
@@ -99,6 +104,8 @@ def publish_validated(store: Store, submission_id: str, run_dir: Path, tier: str
                "public_candidate_cases": candidate,
                "holdout_case_count": len({entry["case_id"] for entry in evidence["candidate"]}) -
                                      len({entry["case_id"] for entry in candidate})}
+    if github_run_id is not None:
+        receipt["github_run_id"] = github_run_id
     if tier == "rank":
         score = json.loads(score_path.read_text())
         if (score.get("schema") != "stwo-cuda-scorecard-v1" or

@@ -34,14 +34,20 @@ def reconcile(store: Store, repository: str, *, fetch=github_runs) -> list[dict]
     if not isinstance(runs, list):
         raise IntakeError("GitHub run listing is malformed")
     with store.db() as connection:
-        active = [dict(row) for row in connection.execute("""SELECT id, submission_id, tier
-            FROM judge_dispatches WHERE state IN ('reserved', 'dispatched')""")]
+        active = [dict(row) for row in connection.execute("""SELECT d.id, d.submission_id,
+            d.tier, c.github_run_id FROM judge_dispatches AS d
+            LEFT JOIN judge_claims AS c ON c.dispatch_id=d.id
+            WHERE d.state IN ('reserved', 'dispatched')""")]
     results = []
     for row in active:
+        if row["github_run_id"] is None:
+            results.append({"attempt": row["id"], "state": "unclaimed_dispatch"})
+            continue
         matches = [run for run in runs if
+                   run.get("databaseId") == row["github_run_id"] and
                    run.get("displayTitle") == workflow_title(row["id"], row["submission_id"], row["tier"])]
         if not matches:
-            results.append({"attempt": row["id"], "state": "awaiting_github_run"})
+            results.append({"attempt": row["id"], "state": "awaiting_claimed_github_run"})
         elif all(run.get("status") == "completed" for run in matches):
             mark_failed(store, row["submission_id"], row["tier"], row["id"])
             results.append({"attempt": row["id"], "state": "released_terminal_run",
