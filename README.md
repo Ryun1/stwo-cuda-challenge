@@ -147,6 +147,6 @@ The manual `CPU sandbox probe` workflow exercises the image and filesystem
 boundary on a hosted Linux runner; H200 GPU proof parity remains a separate
 activation gate.
 
-Discussion prompts and the planned GitHub Discussions categories are in
+The current GitHub Discussions categories and research forms are in
 [spec/DISCUSSIONS.md](spec/DISCUSSIONS.md). No benchmark source, proof blob,
 API token, or private fixture belongs in a Discussion or submission PR.
