@@ -51,9 +51,9 @@ asset, writable case output, and a 64 MiB output volume rejecting a larger
 write with ENOSPC. A separate manually dispatched
 `sandbox-probe.yml` workflow runs the same probe on a hosted Linux CPU using a
 disposable Ubuntu base image; it does not qualify NVIDIA access or the
-production image. The first hosted [CPU probe run](https://github.com/teddyjfpender/stwo-cuda-challenge/actions/runs/36921996231)
-passed the original ten checks on Linux as UID 65532; rerun it for the new quota
-check. On the H200, also try to access another GPU. Every denied
+production image. The hosted [quota probe run](https://github.com/teddyjfpender/stwo-cuda-challenge/actions/runs/36923016520)
+passed all eleven checks on Linux as UID 65532, including the forced ENOSPC
+and retained-output checks. On the H200, also try to access another GPU. Every denied
 attempt must fail. Then run the pinned baseline proof for one PIE,
 one fold, and one full pipeline case inside the boundary, and require the
 same independently verified proof bytes as the unsandboxed baseline. Record
