@@ -100,6 +100,16 @@ public statements. A candidate cannot substitute
 precomputed proofs for hidden inputs: the judge chooses a private, hash-pinned
 holdout after the source is fixed and validates statement binding.
 
+The verifier exit code alone cannot replace the reference digest in this
+epoch. The official Cairo verifier accepts a proof without a CPI input, while
+the input digest in the CUDA backend report is candidate-controlled. A trusted
+CPI-to-public-statement comparison is needed before accepting alternate Cairo
+proof bytes. The pinned Rust `verify-circuit` command can check a circuit proof,
+but its `VerifyRequest` must first be derived by the judge from the ordered
+fold inputs, registry, and expected output digest. Until both bindings exist,
+the exact reference digests are the input/statement gate for public and private
+cases, even when a different proof would otherwise verify.
+
 Public tests are for development. Ranked testing requires a fresh source
 checkout with only allowed paths applied, an isolated unprivileged process,
 read-only fixtures, exclusive GPU, independent verifiers, and a judge-owned
