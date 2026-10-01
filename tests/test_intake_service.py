@@ -18,7 +18,7 @@ from service.receipt_signature import sign, verify
 from service.dispatch import WORKFLOW_TIMEOUT_MINUTES, dispatch
 from service.claim_run import claim
 from service.activation import REQUIRED_VARIABLES, check_activation
-from service.reconcile import reconcile, workflow_title
+from service.reconcile import reconcile, release_unclaimed, workflow_title
 
 
 def git(repo: Path, *args: str) -> str:
@@ -504,6 +504,31 @@ class IntakeTests(unittest.TestCase):
             with self.assertRaisesRegex(IntakeError, "active-job budget"):
                 dispatch(self.store, submission_id, "smoke", "balanced", "owner/repo",
                          sender=lambda *_: None, **limits)
+            title = workflow_title(attempt, submission_id, "smoke")
+            with self.assertRaisesRegex(IntakeError, "matching workflow run"):
+                release_unclaimed(self.store, "owner/repo", attempt, fetch=lambda _: [
+                    {"displayTitle": title, "status": "queued", "databaseId": 42}])
+            self.assertEqual(release_unclaimed(self.store, "owner/repo", attempt,
+                                               fetch=lambda _: []),
+                             {"attempt": attempt, "state": "cancelled_unclaimed"})
+            retry = dispatch(self.store, submission_id, "smoke", "balanced", "owner/repo",
+                             sender=lambda *_: None, **limits)
+            self.assertNotEqual(retry["attempt"], attempt)
+            with self.assertRaisesRegex(IntakeError, "not an unclaimed"):
+                release_unclaimed(self.store, "owner/repo", attempt, fetch=lambda _: [])
+
+    def test_claimed_dispatch_cannot_be_manually_released(self):
+        row = self.store.submit(self.repository, self.commit)
+        submission_id = row["id"]
+        with self.store.db() as connection:
+            connection.execute("UPDATE submissions SET status='built' WHERE id=?", (submission_id,))
+            attempt = connection.execute("""INSERT INTO judge_dispatches
+                (submission_id, tier, track, state, created_utc)
+                VALUES (?, 'smoke', 'balanced', 'dispatched', '2026-10-01T00:00:00Z')""",
+                (submission_id,)).lastrowid
+        claim(self.store, submission_id, "smoke", "balanced", attempt, 42, 1)
+        with self.assertRaisesRegex(IntakeError, "not an unclaimed"):
+            release_unclaimed(self.store, "owner/repo", attempt, fetch=lambda _: [])
 
     def test_dispatch_enforces_tiers_and_one_active_gpu_slot(self):
         row = self.store.submit(self.repository, self.commit)

@@ -58,16 +58,52 @@ def reconcile(store: Store, repository: str, *, fetch=github_runs) -> list[dict]
     return results
 
 
+def release_unclaimed(store: Store, repository: str, attempt: int,
+                      *, fetch=github_runs) -> dict:
+    """Operator recovery after confirming no workflow accepted this dispatch."""
+    if not REPOSITORY.fullmatch(repository) or attempt < 1:
+        raise IntakeError("invalid repository or dispatch attempt")
+    runs = fetch(repository)
+    if not isinstance(runs, list):
+        raise IntakeError("GitHub run listing is malformed")
+    with store.db() as connection:
+        connection.execute("BEGIN IMMEDIATE")
+        row = connection.execute("""SELECT d.id, d.submission_id, d.tier, d.state,
+            c.github_run_id FROM judge_dispatches AS d
+            LEFT JOIN judge_claims AS c ON c.dispatch_id=d.id WHERE d.id=?""",
+            (attempt,)).fetchone()
+        if row is None or row["state"] != "dispatched" or row["github_run_id"] is not None:
+            raise IntakeError("attempt is not an unclaimed active dispatch")
+        title = workflow_title(attempt, row["submission_id"], row["tier"])
+        if any(run.get("displayTitle") == title for run in runs if isinstance(run, dict)):
+            raise IntakeError("GitHub has a matching workflow run; do not release")
+        connection.execute("""UPDATE judge_dispatches SET state='cancelled_unclaimed'
+            WHERE id=? AND state='dispatched'""", (attempt,))
+    return {"attempt": attempt, "state": "cancelled_unclaimed"}
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--state", type=Path, required=True)
     parser.add_argument("--source", type=Path, required=True,
                         help="clean pinned source checkout for intake store")
     parser.add_argument("--repository", required=True, help="OWNER/REPO")
+    parser.add_argument("--release-unclaimed-attempt", type=int,
+                        help="release this attempt only after operator confirms no accepted run")
+    parser.add_argument("--confirm-no-accepted-run", action="store_true",
+                        help="confirm independent GitHub Actions review found no accepted run")
     args = parser.parse_args()
     config = json.loads((ROOT / "benchmark.json").read_text())
-    print(json.dumps(reconcile(Store(args.state, args.source, config), args.repository),
-                     indent=2))
+    store = Store(args.state, args.source, config)
+    if args.release_unclaimed_attempt is not None:
+        if not args.confirm_no_accepted_run:
+            parser.error("--release-unclaimed-attempt requires --confirm-no-accepted-run")
+        result = release_unclaimed(store, args.repository, args.release_unclaimed_attempt)
+    elif args.confirm_no_accepted_run:
+        parser.error("--confirm-no-accepted-run requires --release-unclaimed-attempt")
+    else:
+        result = reconcile(store, args.repository)
+    print(json.dumps(result, indent=2))
 
 
 if __name__ == "__main__":

@@ -103,6 +103,11 @@ release their queue slots. An unclaimed attempt or one with no visible matching
 run stays active until the operator establishes what happened to the dispatch.
 This includes a dispatch CLI transport error before the workflow claims its
 attempt: GitHub may already have accepted it, so the GPU slot remains reserved.
+After independently confirming in GitHub Actions that no run was accepted,
+the operator can use `service/reconcile.py --release-unclaimed-attempt ID
+--confirm-no-accepted-run` to release that exact attempt. The command also
+rejects an existing claim or a matching workflow title in GitHub's run list.
+The attempt still counts against the rolling GPU budget.
 The workflow is not triggered for every PR. Deployment still needs
 authentication, account rate limits, GPU-minute budgets, isolation, signing,
 and an operator queue policy.
