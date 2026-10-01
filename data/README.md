@@ -38,6 +38,9 @@ existing judge-owned stores and receipts remain compatible.
 The six standalone PIE proof hashes are valid output obligations, but their
 raw historical proof JSON was not saved by the original H200 sweep. To fill
 `outputs/pie/`, rerun those six inputs on a qualified H200 at the pinned source
-and check each produced proof against `expected_proof_sha256` before adding it.
+and use `python3 scripts/collect_pie_proofs.py --arm-dir PATH_TO_H200_ARM
+--verifier .cache/rust-official/release/stwo-cairo-official-verifier`.
+The importer checks all six pinned hashes and independently verifies the
+proofs before updating this catalog.
 Do not substitute CPU-formatted Cairo JSON for an independently verified H200
 proof. Until then, `catalog.json` sets `proof_file` to `null` for those cases.

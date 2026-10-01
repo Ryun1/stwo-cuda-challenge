@@ -118,7 +118,15 @@ def import_data(fixtures: Path, two_leaf: Path, eight_leaf: Path) -> dict:
                               (inputs[item["path"]], inputs[item["preimage_path"]])]
         if case["family"] == "pie":
             task["expected_proof_sha256"] = case["expected_proof_sha256"]
-            task["proof_file"] = None  # Historical H200 proof bytes were not retained.
+            proof = ROOT / "data/outputs/pie" / (case["id"].split(":", 1)[1] + ".proof.json")
+            if proof.is_file():
+                if sha(proof) != case["expected_proof_sha256"]:
+                    raise ValueError(f"retained standalone PIE proof differs: {proof}")
+                task["proof_file"] = {"path": str(proof.relative_to(ROOT)),
+                                      "sha256": case["expected_proof_sha256"],
+                                      "bytes": proof.stat().st_size}
+            else:
+                task["proof_file"] = None  # Historical H200 proof bytes were not retained.
         else:
             fold = ("eight-leaf" if case["id"] == "recursion:eight-distinct-pie-fold"
                     else "two-leaf")
