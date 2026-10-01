@@ -20,7 +20,6 @@ sys.path.insert(0, str(ROOT))
 from harness.sandbox import (CONTAINER_INPUTS, CONTAINER_SOURCE, CONTAINER_WORK, IMAGE,
                              case_file as case_file_for_container,
                              docker_command, stage_inputs, stage_runtime)
-from harness.output_quota import CaseOutputVolume
 
 RUNTIME_ENV = frozenset({
     "PATH", "LD_LIBRARY_PATH", "LANG", "LC_ALL", "TZ",
@@ -244,6 +243,9 @@ def flags(plan: int) -> dict:
 
 
 def main() -> None:
+    # The pipeline image imports checked_file and sha from this module but does
+    # not create host mounts. Keep the quota helper outside that import path.
+    from harness.output_quota import CaseOutputVolume
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source", type=Path, required=True, help="built pinned source tree")
     parser.add_argument("--fixtures", type=Path, required=True)
