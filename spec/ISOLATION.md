@@ -36,8 +36,10 @@ The 900-second process timeout, 1 GiB per-file limit, and disabled core dumps
 are implemented. The writable case directory now sits on a fresh fixed-size
 2 GiB ext4 loopback filesystem, with its image outside candidate mounts.
 Its fixed filesystem capacity bounds the total of all proof files, reports,
-logs, and scratch files. The judge copies retained outputs after the candidate
-exits, preserves links as links, and removes the mount and image. The actual
+logs, and scratch files. Candidate stdout is drained to a separate judge-owned
+log capped at 64 MiB; exceeding that cap fails the case. The judge copies
+retained outputs after the candidate exits, preserves links as links, and
+removes the mount and image. The actual
 Linux runner must pass a forced-ENOSPC probe before activation. The same boundary
 applies to participant-supplied fast-screening
 artifacts if that optional tier is ever enabled; such artifacts remain

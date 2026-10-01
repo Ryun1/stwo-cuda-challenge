@@ -1,4 +1,5 @@
 import hashlib
+import io
 import json
 from pathlib import Path
 import subprocess
@@ -24,6 +25,17 @@ class FakeNvml:
 
 
 class RunnerTests(unittest.TestCase):
+    def test_candidate_stdout_cannot_fill_judge_disk(self):
+        with tempfile.TemporaryDirectory() as directory, patch(
+                "harness.run_arm.MAX_PROCESS_LOG_BYTES", 1024):
+            output = Path(directory) / "trial"
+            script = "import sys,time; sys.stdout.write('X'*100000); sys.stdout.flush(); time.sleep(.04)"
+            with self.assertRaisesRegex(RuntimeError, "stdout capture failed or exceeded"):
+                run([sys.executable, "-c", script], output, FakeNvml(), {}, timeout=3)
+            self.assertLessEqual((output / "process.log").stat().st_size, 1024)
+            measurement = json.loads((output / "measurement.json").read_text())
+            self.assertTrue(measurement["process_log_truncated"])
+
     def test_candidate_environment_excludes_host_credentials(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -108,6 +120,7 @@ class RunnerTests(unittest.TestCase):
                 return subprocess.CompletedProcess(command, 0, "")
             class Attached:
                 returncode = 0
+                stdout = io.BytesIO()
                 def wait(self, timeout=None):
                     time.sleep(.04)
                     return 0
@@ -133,6 +146,7 @@ class RunnerTests(unittest.TestCase):
                 pid = 12345
                 returncode = 137
                 waits = 0
+                stdout = io.BytesIO()
                 def wait(self, timeout=None):
                     self.waits += 1
                     if self.waits == 1:

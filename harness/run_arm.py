@@ -27,6 +27,8 @@ RUNTIME_ENV = frozenset({
     "CUDA_CACHE_MAXSIZE", "CUDA_DEVICE_MAX_CONNECTIONS",
     "NVIDIA_VISIBLE_DEVICES", "NVIDIA_DRIVER_CAPABILITIES",
 })
+MAX_PROCESS_LOG_BYTES = 64 * 1024 * 1024
+TRUNCATION_MARKER = b"\n[judge: candidate stdout limit exceeded]\n"
 
 
 def candidate_env(host: Mapping[str, str], preprocessed: Path,
@@ -37,6 +39,36 @@ def candidate_env(host: Mapping[str, str], preprocessed: Path,
                STWO_CAIRO_CUDA_ARTIFACT_DIR=str(artifact_dir.resolve()),
                STWO_CAIRO_CUDA_PREPROCESSED_VARIANT="canonical")
     return env
+
+
+def capture_process_output(stream, log, result: dict) -> None:
+    """Drain all output, but bound host-side log storage independently of /work."""
+    payload_limit = MAX_PROCESS_LOG_BYTES - len(TRUNCATION_MARKER)
+    written = 0
+    truncated = False
+    error = None
+    try:
+        while block := stream.read1(1 << 16):
+            if error is not None:
+                continue
+            try:
+                remaining = payload_limit - written
+                if remaining:
+                    retained = block[:remaining]
+                    log.write(retained)
+                    written += len(retained)
+                if len(block) > remaining and not truncated:
+                    log.write(TRUNCATION_MARKER)
+                    truncated = True
+            except Exception as cause:
+                error = str(cause)
+    except Exception as cause:
+        error = str(cause)
+    finally:
+        stream.close()
+        result["bytes"] = written + (len(TRUNCATION_MARKER) if truncated else 0)
+        result["truncated"] = truncated
+        result["error"] = error
 
 
 class Memory(ctypes.Structure):
@@ -175,11 +207,15 @@ def run(command: list[str], out: Path, nvml: Nvml, env: dict, *, timeout: int = 
     watcher.start()
     started = time.monotonic_ns()
     timed_out = False
+    log_result = {}
     try:
         with (out / "process.log").open("wb") as log:
             launched = ["docker", "start", "--attach", container_id] if container_id else command
-            process = subprocess.Popen(launched, stdout=log, stderr=subprocess.STDOUT,
+            process = subprocess.Popen(launched, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                                        cwd=out, env=runtime_env, start_new_session=True)
+            reader = threading.Thread(target=capture_process_output,
+                                      args=(process.stdout, log, log_result), daemon=True)
+            reader.start()
             try:
                 process.wait(timeout=timeout)
             except subprocess.TimeoutExpired:
@@ -192,7 +228,10 @@ def run(command: list[str], out: Path, nvml: Nvml, env: dict, *, timeout: int = 
                         pass
                 os.killpg(process.pid, signal.SIGKILL)
                 process.wait()
-        elapsed = (time.monotonic_ns() - started) / 1e9
+            elapsed = (time.monotonic_ns() - started) / 1e9
+            reader.join(timeout=20)
+            if reader.is_alive():
+                raise RuntimeError("candidate stdout pipe did not close after process exit")
         exit_code = process.returncode
         if container_id and not timed_out and exit_code == 0:
             inspected = subprocess.run(["docker", "inspect", "--format", "{{.State.ExitCode}}",
@@ -209,8 +248,12 @@ def run(command: list[str], out: Path, nvml: Nvml, env: dict, *, timeout: int = 
         raise RuntimeError(f"invalid NVML sample: {sample_error}, count={samples}")
     result = {"time_s": elapsed, "peak_device_bytes": peak, "idle_device_bytes": initial,
               "nvml_samples": samples, "nvml_period_s": 0.01, "exit_code": exit_code,
-              "timed_out": timed_out, "command": command}
+              "timed_out": timed_out, "command": command,
+              "process_log_bytes": log_result.get("bytes"),
+              "process_log_truncated": log_result.get("truncated", False)}
     (out / "measurement.json").write_text(json.dumps(result, indent=2) + "\n")
+    if log_result.get("error") or log_result.get("truncated"):
+        raise RuntimeError(f"candidate stdout capture failed or exceeded limit: {log_result}")
     if exit_code or timed_out:
         raise RuntimeError(f"candidate failed; inspect {out / 'process.log'}")
     return result
