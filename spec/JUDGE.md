@@ -58,9 +58,11 @@ size, validates the patch against a clean pinned checkout, and returns a
 digest-keyed job without touching a GPU. `service/build_worker.py` applies
 that patch in a fresh checkout and produces a trusted build attestation.
 `service/publish_receipt.py` joins a completed H200 run to the staged job.
-The GitHub `workflow_dispatch` is an operator path for that judge; it is not
-triggered for every PR. Deployment still needs authentication, account rate
-limits, GPU-minute budgets, isolation, signing, and an operator queue policy.
+`service/dispatch.py` checks tier prerequisites and allows one active H200
+dispatch at a time before triggering the manual GitHub Actions workflow.
+The workflow is not triggered for every PR. Deployment still needs
+authentication, account rate limits, GPU-minute budgets, isolation, signing,
+and an operator queue policy.
 Promotion is manual and requires fresh ranked evidence. A public Discussion
 is for learning, not an intake endpoint.
 

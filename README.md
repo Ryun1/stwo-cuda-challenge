@@ -111,13 +111,16 @@ prepared locally; its HTTPS hosting remains part of deployment.
 
 The service/runner design, cache keys, artifact policy, isolation, and H200
 budget controls are in [spec/JUDGE.md](spec/JUDGE.md). The CPU-only intake
-prototype is runnable locally:
+prototype and trusted dispatcher are runnable locally:
 
 ```sh
 python3 service/intake.py --source workspace/baseline \
   --state ../stwo-cuda-challenge-state --token-file /secure/path/intake-token
 python3 service/build_worker.py --source workspace/baseline \
   --state ../stwo-cuda-challenge-state --submission-id ID
+python3 service/dispatch.py --source workspace/baseline \
+  --state ../stwo-cuda-challenge-state --submission-id ID \
+  --repository teddyjfpender/stwo-cuda-challenge --tier smoke --dry-run
 ```
 
 `POST /submissions` takes `{"repository":"https://github.com/OWNER/FORK",
@@ -128,6 +131,12 @@ untrusted fast screening only. A real H200 deployment requires a fixture
 object store, verifier binaries, self-hosted runner, isolation, receipt
 signing, rate limits, and operator secrets outside Git. This repo does not
 claim to operate a live public ranking service yet.
+
+The [private staging repository](https://github.com/teddyjfpender/stwo-cuda-challenge)
+has Discussions enabled. Once an operator configures the dedicated H200
+runner and judge variables, removing `--dry-run` dispatches a built submission
+to the serialized workflow. Smoke, qualify, and rank receipts remain available
+by tier as a submission progresses.
 
 Discussion prompts and the planned GitHub Discussions categories are in
 [spec/DISCUSSIONS.md](spec/DISCUSSIONS.md). No benchmark source, proof blob,

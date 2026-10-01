@@ -6,11 +6,13 @@ import subprocess
 import tempfile
 import threading
 import unittest
+from unittest.mock import patch
 from urllib.request import ProxyHandler, Request, build_opener
 
 from service.intake import Handler, IntakeError, IntakeHTTPServer, Store, fetch_candidate
 from service.build_worker import prepare
 from service.publish_receipt import publish
+from service.dispatch import dispatch
 
 
 def git(repo: Path, *args: str) -> str:
@@ -169,6 +171,45 @@ class IntakeTests(unittest.TestCase):
         self.assertIsNone(publish(self.store, submission_id, failed, "rank"))
         self.assertEqual(self.store.get(submission_id)["status"], "judge_failed")
         self.assertEqual(self.store.receipt(submission_id)["tier"], "qualify")
+
+    def test_dispatch_enforces_tiers_and_one_active_gpu_slot(self):
+        row = self.store.submit(self.repository, self.commit)
+        submission_id = row["id"]
+        prepare(self.store, submission_id)
+        (self.store.state / "jobs" / submission_id / "build-attestation.json").write_text("{}")
+        with self.store.db() as connection:
+            connection.execute("UPDATE submissions SET status='built' WHERE id=?", (submission_id,))
+        sent = []
+        sender = lambda *args: sent.append(args)
+        with patch("service.dispatch.validate_record"):
+            with self.assertRaises(IntakeError):
+                dispatch(self.store, submission_id, "qualify", "balanced", "owner/repo",
+                         sender=sender)
+            smoke = dispatch(self.store, submission_id, "smoke", "balanced", "owner/repo",
+                             sender=sender)
+            self.assertEqual(smoke["state"], "dispatched")
+            self.assertEqual(self.store.get(submission_id)["judge_dispatch"]["state"], "dispatched")
+            with self.assertRaises(IntakeError):
+                dispatch(self.store, submission_id, "smoke", "balanced", "owner/repo",
+                         sender=sender)
+        self.assertEqual(len(sent), 1)
+        run = self.root / "smoke-run"
+        run.mkdir()
+        (run / "evidence.json").write_text(json.dumps({
+            "schema": "stwo-cuda-paired-evidence-v1", "contract_epoch": "test-v1",
+            "source_commit": self.commit, "tier": "smoke", "manifest_sha256": "1" * 64,
+            "candidate": [{"case_id": "pie:15582797_15582797", "time_s": 1}],
+        }))
+        build = {"source_commit": self.commit, "contract_epoch": "test-v1",
+                 "patch_sha256": row["patch_sha256"]}
+        (self.store.state / "jobs" / submission_id / "build-attestation.json").write_text(
+            json.dumps(build))
+        publish(self.store, submission_id, run, "smoke")
+        self.assertEqual(self.store.get(submission_id)["judge_dispatch"]["state"], "completed")
+        with patch("service.dispatch.validate_record"):
+            qualified = dispatch(self.store, submission_id, "qualify", "balanced", "owner/repo",
+                                 sender=sender)
+        self.assertEqual(qualified["state"], "dispatched")
 
 
 if __name__ == "__main__":

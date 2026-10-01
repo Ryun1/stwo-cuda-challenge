@@ -31,6 +31,10 @@ def publish(store: Store, submission_id: str, run_dir: Path, tier: str) -> dict 
     if not evidence_path.is_file() or (tier == "rank" and not score_path.is_file()):
         with store.db() as connection:
             connection.execute("UPDATE submissions SET status='judge_failed' WHERE id=?", (submission_id,))
+            connection.execute("""UPDATE judge_dispatches SET state='failed'
+                WHERE id=(SELECT id FROM judge_dispatches WHERE submission_id=? AND tier=?
+                          AND state IN ('reserved', 'dispatched') ORDER BY id DESC LIMIT 1)""",
+                (submission_id, tier))
         return None
     evidence = json.loads(evidence_path.read_text())
     if (evidence.get("schema") != "stwo-cuda-paired-evidence-v1" or
@@ -83,6 +87,10 @@ def publish(store: Store, submission_id: str, run_dir: Path, tier: str) -> dict 
             (submission_id, tier, digest, datetime.now(timezone.utc).isoformat()))
         connection.execute("UPDATE submissions SET status=?, receipt_sha256=? WHERE id=?",
                            (status, digest, submission_id))
+        connection.execute("""UPDATE judge_dispatches SET state='completed'
+            WHERE id=(SELECT id FROM judge_dispatches WHERE submission_id=? AND tier=?
+                      AND state IN ('reserved', 'dispatched') ORDER BY id DESC LIMIT 1)""",
+            (submission_id, tier))
     return receipt
 
 

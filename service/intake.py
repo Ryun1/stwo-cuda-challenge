@@ -108,6 +108,11 @@ class Store:
                 receipt_sha256 TEXT NOT NULL, created_utc TEXT NOT NULL,
                 PRIMARY KEY (submission_id, receipt_sha256),
                 FOREIGN KEY (submission_id) REFERENCES submissions(id))""")
+            connection.execute("""CREATE TABLE IF NOT EXISTS judge_dispatches (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                submission_id TEXT NOT NULL, tier TEXT NOT NULL, track TEXT NOT NULL,
+                state TEXT NOT NULL, created_utc TEXT NOT NULL,
+                FOREIGN KEY (submission_id) REFERENCES submissions(id))""")
 
     @contextmanager
     def db(self):
@@ -124,7 +129,15 @@ class Store:
             return None
         with self.db() as connection:
             row = connection.execute("SELECT * FROM submissions WHERE id=?", (submission_id,)).fetchone()
-        return dict(row) if row else None
+        if not row:
+            return None
+        result = dict(row)
+        with self.db() as connection:
+            latest = connection.execute("""SELECT id, tier, track, state, created_utc
+                FROM judge_dispatches WHERE submission_id=? ORDER BY id DESC LIMIT 1""",
+                (submission_id,)).fetchone()
+        result["judge_dispatch"] = dict(latest) if latest else None
+        return result
 
     def receipt(self, submission_id: str, tier: str | None = None) -> dict | None:
         row = self.get(submission_id)
