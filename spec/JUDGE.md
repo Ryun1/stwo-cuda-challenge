@@ -50,8 +50,10 @@ claim that the current local prototype is already isolated.
 4. **Rank (H200):** fresh A/A baseline calibration and at least three paired
    ABBA rounds; score all tracks from the same measurements. Publish
    content-addressed receipts and public per-case metrics after private case
-   identifiers are redacted. Cryptographic operator signatures are a launch
-   requirement, not provided by the local prototype.
+   identifiers are redacted. The publisher signs each immutable receipt with
+   an external Ed25519 operator key; public verification needs the separately
+   authenticated operator public key. The H200 deployment must keep that key
+   inaccessible to the candidate sandbox.
 
 The CPU-only intake implementation is `service/intake.py`. It exposes
 `POST /submissions` with a GitHub HTTPS repository, full commit SHA, and
@@ -59,7 +61,8 @@ optional artifact SHA-256; `PUT /submissions/{id}/artifact` for a declared
 artifact; `GET /submissions/{id}` for status; and
 `GET /submissions/{id}/receipt` for the latest redacted receipt, and
 `GET /submissions/{id}/receipts/{smoke|qualify|rank}` for a tier's latest
-content-addressed receipt. It accepts
+content-addressed receipt. The corresponding `/signature` suffix returns its
+detached Ed25519 signature. It accepts
 only a regular patch and notes file from the submitted commit, bounds their
 size, validates the patch against a clean pinned checkout, and returns a
 digest-keyed job without touching a GPU. `service/build_worker.py` applies

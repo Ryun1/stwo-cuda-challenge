@@ -9,8 +9,9 @@ fixture transfers, and hash checks happen before its timed proof work.
 ## Prepare the host once
 
 1. Use one exclusive H200 SXM with the device capacity in `benchmark.json`.
-   Install Zig 0.15.2, CUDA/nvcc, Cargo, `nightly-2026-01-15`, Git LFS, and
-   the GitHub CLI. Keep service state, private fixtures, credentials, and the
+   Install Zig 0.15.2, CUDA/nvcc, Cargo, `nightly-2026-01-15`, Git LFS,
+   OpenSSL with Ed25519 support, and the GitHub CLI. Keep service state,
+   private fixtures, credentials, and the
    2 GiB canonical preprocessing asset outside this repository.
 2. Clone the challenge, then run `git lfs pull`, `./setup.sh --build`, and
    `python3 scripts/check_data.py`. This fetches the pinned prover, builds the
@@ -33,8 +34,19 @@ fixture transfers, and hash checks happen before its timed proof work.
 
    Never put private case names, expected digests, or fixture paths in GitHub
    Discussions or a submission repository.
-4. Register one online self-hosted runner with the default `self-hosted` label
-   and `h200-stwo-challenge`. Configure all eight repository variable names
+4. Generate an Ed25519 operator key outside this repository and service state,
+   readable only by the judge identity. Publish its public half through an
+   authenticated channel and retain the public-key digest for this epoch.
+   `openssl genpkey -algorithm ED25519 -out /secure/path/operator-key.pem` and
+   `openssl pkey -in /secure/path/operator-key.pem -pubout -out operator-public.pem`
+   generate the key pair; restrict the private file to mode `0600`.
+   Configure `STWO_RECEIPT_SIGNING_KEY` with the private-key **path**, not key
+   bytes. The publisher signs the exact receipt JSON and serves a detached
+   signature; verify it with `python3 service/receipt_signature.py --receipt
+   RECEIPT.json --signature RECEIPT.signature.json --public-key operator-public.pem`.
+   Candidate sandbox qualification must precede use of the key on an H200 job.
+5. Register one online self-hosted runner with the default `self-hosted` label
+   and `h200-stwo-challenge`. Configure all nine repository variable names
    used in `.github/workflows/h200-rank.yml` with nonempty paths. Run
    `python3 service/activation.py --repository OWNER/REPO`; it prints no
    variable values and must pass before dispatch. Qualify process isolation,
@@ -62,7 +74,6 @@ fixture transfers, and hash checks happen before its timed proof work.
    `service/reconcile.py` so the completed GitHub run releases its dispatch
    slot. A run not yet visible in GitHub stays reserved for operator review.
 4. Shut down the paid H200 host when proof qualification is complete. Retain
-   immutable evidence and receipts in the external service store, and add
-   operator signing before public release. Keep generated proofs and logs
-   outside Git. Public reference outputs are already
+   immutable evidence and signed receipts in the external service store. Keep
+   generated proofs and logs outside Git. Public reference outputs are already
    under `data/outputs` and are checked by `scripts/check_data.py`.

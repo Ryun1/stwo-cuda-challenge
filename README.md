@@ -130,9 +130,9 @@ python3 service/dispatch.py --source workspace/baseline \
 after patch validation, without building or reserving the H200. The worker
 rebuilds ranked binaries from source; uploaded artifacts are stored for future
 untrusted fast screening only. A real H200 deployment requires a fixture
-object store, verifier binaries, self-hosted runner, isolation, receipt
-signing, rate limits, and operator secrets outside Git. This repo does not
-claim to operate a live public ranking service yet.
+object store, verifier binaries, self-hosted runner, isolation, an externally
+provisioned receipt signing key, rate limits, and operator secrets outside Git.
+This repo does not claim to operate a live public ranking service yet.
 
 The [private staging repository](https://github.com/teddyjfpender/stwo-cuda-challenge)
 has Discussions enabled. Once an operator configures the dedicated H200

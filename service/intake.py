@@ -139,7 +139,7 @@ class Store:
         result["judge_dispatch"] = dict(latest) if latest else None
         return result
 
-    def receipt(self, submission_id: str, tier: str | None = None) -> dict | None:
+    def receipt_digest(self, submission_id: str, tier: str | None = None) -> str | None:
         row = self.get(submission_id)
         if not row or (tier is not None and tier not in ("smoke", "qualify", "rank")):
             return None
@@ -151,12 +151,29 @@ class Store:
                     WHERE submission_id=? AND tier=? ORDER BY rowid DESC LIMIT 1""",
                     (submission_id, tier)).fetchone()
             digest = found["receipt_sha256"] if found else None
+        return digest
+
+    def receipt(self, submission_id: str, tier: str | None = None) -> dict | None:
+        digest = self.receipt_digest(submission_id, tier)
         if not digest:
             return None
         path = self.state / "receipts" / f"{digest}.json"
         if not path.is_file() or sha(path.read_bytes()) != digest:
             raise IntakeError("stored receipt digest differs")
         return json.loads(path.read_text())
+
+    def receipt_signature(self, submission_id: str, tier: str | None = None) -> dict | None:
+        digest = self.receipt_digest(submission_id, tier)
+        if not digest:
+            return None
+        path = self.state / "receipts" / f"{digest}.signature.json"
+        if not path.is_file():
+            return None
+        envelope = json.loads(path.read_text())
+        if (envelope.get("schema") != "stwo-cuda-receipt-signature-v1" or
+                envelope.get("receipt_sha256") != digest):
+            raise IntakeError("stored receipt signature differs")
+        return envelope
 
     def submit(self, repository: str, commit: str, artifact_sha256: str | None = None) -> dict:
         if not GITHUB.fullmatch(repository) or not COMMIT.fullmatch(commit):
@@ -288,6 +305,12 @@ class Handler(BaseHTTPRequestHandler):
         elif len(parts) == 4 and parts[2] == "receipts":
             receipt = self.store.receipt(parts[1], parts[3])
             self.send_json(200, receipt) if receipt else self.send_json(404, {"error": "receipt unavailable"})
+        elif len(parts) == 4 and parts[2:] == ["receipt", "signature"]:
+            signature = self.store.receipt_signature(parts[1])
+            self.send_json(200, signature) if signature else self.send_json(404, {"error": "signature unavailable"})
+        elif len(parts) == 5 and parts[2] == "receipts" and parts[4] == "signature":
+            signature = self.store.receipt_signature(parts[1], parts[3])
+            self.send_json(200, signature) if signature else self.send_json(404, {"error": "signature unavailable"})
         else:
             self.send_json(404, {"error": "not found"})
 

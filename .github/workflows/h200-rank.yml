@@ -41,6 +41,7 @@ jobs:
       CAIRO_VERIFIER: ${{ vars.STWO_CAIRO_VERIFIER }}
       REGISTRY_CAIRO_VERIFIER: ${{ vars.STWO_REGISTRY_CAIRO_VERIFIER }}
       RANKED_MANIFEST: ${{ vars.STWO_RANKED_MANIFEST }}
+      RECEIPT_SIGNING_KEY: ${{ vars.STWO_RECEIPT_SIGNING_KEY }}
       RUN_DIR: .runs/${{ inputs.submission_id }}-${{ github.run_id }}-${{ github.run_attempt }}
     concurrency:
       group: stwo-h200-exclusive
@@ -76,6 +77,7 @@ jobs:
             --state "$SUBMISSION_STATE" --source "$BASELINE_ROOT/source" \
             --submission-id "$SUBMISSION_ID" --run-dir "$RUN_DIR" --tier "$TIER" \
             --attempt "$ATTEMPT" \
+            --signing-key "$RECEIPT_SIGNING_KEY" \
             --judge-outcome "${{ steps.judge.outcome }}"
       - uses: actions/upload-artifact@v4
         if: always()

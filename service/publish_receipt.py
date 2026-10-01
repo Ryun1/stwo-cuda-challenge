@@ -12,6 +12,7 @@ from datetime import datetime, timezone
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from service.intake import IntakeError, Store
+from service.receipt_signature import sign
 
 
 def public_ids() -> set[str]:
@@ -36,17 +37,20 @@ def mark_failed(store: Store, submission_id: str, tier: str,
 
 
 def publish(store: Store, submission_id: str, run_dir: Path, tier: str,
-            *, judge_succeeded: bool = True, attempt: int | None = None) -> dict | None:
+            *, judge_succeeded: bool = True, attempt: int | None = None,
+            signing_key: Path | None = None) -> dict | None:
     try:
         return publish_validated(store, submission_id, run_dir, tier,
-                                 judge_succeeded=judge_succeeded, attempt=attempt)
+                                 judge_succeeded=judge_succeeded, attempt=attempt,
+                                 signing_key=signing_key)
     except (IntakeError, OSError, ValueError, KeyError, TypeError):
         mark_failed(store, submission_id, tier, attempt)
         raise
 
 
 def publish_validated(store: Store, submission_id: str, run_dir: Path, tier: str,
-                      *, judge_succeeded: bool, attempt: int | None) -> dict | None:
+                      *, judge_succeeded: bool, attempt: int | None,
+                      signing_key: Path | None) -> dict | None:
     row = store.get(submission_id)
     if (not row or row["contract_epoch"] != store.config["contractEpoch"] or
             row["status"] not in ("built", "smoked", "qualified", "ranked", "judge_failed")):
@@ -114,6 +118,18 @@ def publish_validated(store: Store, submission_id: str, run_dir: Path, tier: str
     else:
         with target.open("xb") as output:
             output.write(data)
+    if signing_key is not None:
+        if signing_key.resolve().is_relative_to(store.source):
+            raise IntakeError("signing key must live outside the prover source checkout")
+        envelope = sign(target, signing_key, store.state)
+        signature_path = target.with_suffix(".signature.json")
+        signature_data = (json.dumps(envelope, indent=2, sort_keys=True) + "\n").encode()
+        if signature_path.exists():
+            if signature_path.read_bytes() != signature_data:
+                raise IntakeError("existing immutable receipt signature differs")
+        else:
+            with signature_path.open("xb") as output:
+                output.write(signature_data)
     status = {"smoke": "smoked", "qualify": "qualified", "rank": "ranked"}[tier]
     with store.db() as connection:
         if attempt is not None:
@@ -147,12 +163,14 @@ def main() -> None:
                         help="trusted dispatcher attempt ID for this exact workflow run")
     parser.add_argument("--judge-outcome", choices=("success", "failure", "cancelled"),
                         required=True, help="actual workflow judge-step outcome")
+    parser.add_argument("--signing-key", type=Path, required=True,
+                        help="external Ed25519 private key; never store it in the challenge repo")
     args = parser.parse_args()
     config = json.loads((ROOT / "benchmark.json").read_text())
     receipt = publish(Store(args.state, args.source, config), args.submission_id,
                       args.run_dir, args.tier,
                       judge_succeeded=args.judge_outcome == "success",
-                      attempt=args.attempt)
+                      attempt=args.attempt, signing_key=args.signing_key)
     print("judge failed" if receipt is None else f"published {receipt['tier']} receipt")
 
 

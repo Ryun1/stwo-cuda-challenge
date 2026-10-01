@@ -12,6 +12,7 @@ from urllib.request import ProxyHandler, Request, build_opener
 from service.intake import Handler, IntakeError, IntakeHTTPServer, Store, fetch_candidate
 from service.build_worker import prepare
 from service.publish_receipt import publish
+from service.receipt_signature import sign, verify
 from service.dispatch import dispatch
 from service.activation import REQUIRED_VARIABLES, check_activation
 from service.reconcile import reconcile, workflow_title
@@ -145,6 +146,57 @@ class IntakeTests(unittest.TestCase):
         self.assertEqual(len(receipt["scores"]["public_per_case"]), 1)
         self.assertNotIn(hidden, json.dumps(receipt))
         self.assertEqual(self.store.get(submission_id)["status"], "ranked")
+
+    def test_operator_signature_binds_published_receipt(self):
+        row = self.store.submit(self.repository, self.commit)
+        submission_id = row["id"]
+        (self.store.state / "jobs" / submission_id / "build-attestation.json").write_text(
+            json.dumps({"source_commit": self.commit, "contract_epoch": "test-v1",
+                        "patch_sha256": row["patch_sha256"]}))
+        with self.store.db() as connection:
+            connection.execute("UPDATE submissions SET status='built' WHERE id=?", (submission_id,))
+        run = self.root / "signed-run"
+        run.mkdir()
+        (run / "evidence.json").write_text(json.dumps({
+            "schema": "stwo-cuda-paired-evidence-v1", "contract_epoch": "test-v1",
+            "source_commit": self.commit, "tier": "smoke", "manifest_sha256": "1" * 64,
+            "candidate": [{"case_id": "pie:15582797_15582797", "time_s": 1}],
+        }))
+        key = self.root / "operator-key.pem"
+        public_key = self.root / "operator-public.pem"
+        subprocess.run(["openssl", "genpkey", "-algorithm", "ED25519", "-out", str(key)],
+                       check=True, capture_output=True)
+        subprocess.run(["openssl", "pkey", "-in", str(key), "-pubout", "-out",
+                        str(public_key)], check=True, capture_output=True)
+        self.assertIsNotNone(publish(self.store, submission_id, run, "smoke", signing_key=key))
+        digest = self.store.get(submission_id)["receipt_sha256"]
+        receipt_path = self.store.state / "receipts" / f"{digest}.json"
+        envelope = self.store.receipt_signature(submission_id, "smoke")
+        self.assertEqual(envelope["receipt_sha256"], digest)
+        verify(receipt_path, envelope, public_key)
+        Handler.store = self.store
+        Handler.token = b"a" * 32
+        server = IntakeHTTPServer(("127.0.0.1", 0), Handler)
+        thread = threading.Thread(target=lambda: server.serve_forever(poll_interval=0.01),
+                                  daemon=True)
+        thread.start()
+        self.addCleanup(server.server_close)
+        self.addCleanup(server.shutdown)
+        url = (f"http://127.0.0.1:{server.server_port}/submissions/"
+               f"{submission_id}/receipts/smoke/signature")
+        request = Request(url, headers={"Authorization": "Bearer " + "a" * 32})
+        with build_opener(ProxyHandler({})).open(request, timeout=5) as response:
+            self.assertEqual(json.load(response), envelope)
+        changed = self.root / "changed-receipt.json"
+        changed.write_bytes(receipt_path.read_bytes() + b" ")
+        with self.assertRaises(ValueError):
+            verify(changed, envelope, public_key)
+        bad = dict(envelope, signature_base64="AA==")
+        with self.assertRaises(ValueError):
+            verify(receipt_path, bad, public_key)
+        key.chmod(0o644)
+        with self.assertRaisesRegex(ValueError, "private regular file"):
+            sign(receipt_path, key, self.store.state)
 
     def test_receipts_survive_tier_progression_and_failed_retry(self):
         row = self.store.submit(self.repository, self.commit)
