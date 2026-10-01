@@ -6,6 +6,7 @@ import hashlib
 import json
 from pathlib import Path
 import sys
+from datetime import datetime, timezone
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -28,8 +29,6 @@ def publish(store: Store, submission_id: str, run_dir: Path, tier: str) -> dict 
     evidence_path = run_dir / "evidence.json"
     score_path = run_dir / "scorecard.json"
     if not evidence_path.is_file() or (tier == "rank" and not score_path.is_file()):
-        if row["receipt_sha256"]:
-            raise IntakeError("existing immutable receipt cannot be replaced by a failed run")
         with store.db() as connection:
             connection.execute("UPDATE submissions SET status='judge_failed' WHERE id=?", (submission_id,))
         return None
@@ -70,15 +69,18 @@ def publish(store: Store, submission_id: str, run_dir: Path, tier: str) -> dict 
                                                  if entry["id"] in visible]}
     data = (json.dumps(receipt, indent=2, sort_keys=True) + "\n").encode()
     digest = hashlib.sha256(data).hexdigest()
-    target = store.state / "receipts" / f"{submission_id}.json"
+    target = store.state / "receipts" / f"{digest}.json"
     if target.exists():
-        if target.read_bytes() != data or row["receipt_sha256"] != digest:
+        if target.read_bytes() != data:
             raise IntakeError("existing immutable receipt differs")
     else:
         with target.open("xb") as output:
             output.write(data)
     status = {"smoke": "smoked", "qualify": "qualified", "rank": "ranked"}[tier]
     with store.db() as connection:
+        connection.execute("""INSERT OR IGNORE INTO submission_receipts
+            (submission_id, tier, receipt_sha256, created_utc) VALUES (?, ?, ?, ?)""",
+            (submission_id, tier, digest, datetime.now(timezone.utc).isoformat()))
         connection.execute("UPDATE submissions SET status=?, receipt_sha256=? WHERE id=?",
                            (status, digest, submission_id))
     return receipt

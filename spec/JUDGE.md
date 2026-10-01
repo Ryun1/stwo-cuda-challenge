@@ -50,7 +50,9 @@ The CPU-only intake implementation is `service/intake.py`. It exposes
 `POST /submissions` with a GitHub HTTPS repository, full commit SHA, and
 optional artifact SHA-256; `PUT /submissions/{id}/artifact` for a declared
 artifact; `GET /submissions/{id}` for status; and
-`GET /submissions/{id}/receipt` for a redacted immutable receipt. It accepts
+`GET /submissions/{id}/receipt` for the latest redacted receipt, and
+`GET /submissions/{id}/receipts/{smoke|qualify|rank}` for a tier's latest
+content-addressed receipt. It accepts
 only a regular patch and notes file from the submitted commit, bounds their
 size, validates the patch against a clean pinned checkout, and returns a
 digest-keyed job without touching a GPU. `service/build_worker.py` applies

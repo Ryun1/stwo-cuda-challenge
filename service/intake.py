@@ -103,6 +103,11 @@ class Store:
                 status TEXT NOT NULL, artifact_sha256 TEXT,
                 artifact_uploaded INTEGER NOT NULL DEFAULT 0, receipt_sha256 TEXT,
                 UNIQUE(contract_epoch, patch_sha256))""")
+            connection.execute("""CREATE TABLE IF NOT EXISTS submission_receipts (
+                submission_id TEXT NOT NULL, tier TEXT NOT NULL,
+                receipt_sha256 TEXT NOT NULL, created_utc TEXT NOT NULL,
+                PRIMARY KEY (submission_id, receipt_sha256),
+                FOREIGN KEY (submission_id) REFERENCES submissions(id))""")
 
     @contextmanager
     def db(self):
@@ -120,6 +125,25 @@ class Store:
         with self.db() as connection:
             row = connection.execute("SELECT * FROM submissions WHERE id=?", (submission_id,)).fetchone()
         return dict(row) if row else None
+
+    def receipt(self, submission_id: str, tier: str | None = None) -> dict | None:
+        row = self.get(submission_id)
+        if not row or (tier is not None and tier not in ("smoke", "qualify", "rank")):
+            return None
+        if tier is None:
+            digest = row["receipt_sha256"]
+        else:
+            with self.db() as connection:
+                found = connection.execute("""SELECT receipt_sha256 FROM submission_receipts
+                    WHERE submission_id=? AND tier=? ORDER BY rowid DESC LIMIT 1""",
+                    (submission_id, tier)).fetchone()
+            digest = found["receipt_sha256"] if found else None
+        if not digest:
+            return None
+        path = self.state / "receipts" / f"{digest}.json"
+        if not path.is_file() or sha(path.read_bytes()) != digest:
+            raise IntakeError("stored receipt digest differs")
+        return json.loads(path.read_text())
 
     def submit(self, repository: str, commit: str, artifact_sha256: str | None = None) -> dict:
         if not GITHUB.fullmatch(repository) or not COMMIT.fullmatch(commit):
@@ -246,11 +270,11 @@ class Handler(BaseHTTPRequestHandler):
         if len(parts) == 2:
             self.send_json(200, row)
         elif len(parts) == 3 and parts[2] == "receipt":
-            receipt = self.store.state / "receipts" / f"{parts[1]}.json"
-            if not row["receipt_sha256"] or not receipt.is_file() or sha(receipt.read_bytes()) != row["receipt_sha256"]:
-                self.send_json(404, {"error": "receipt unavailable"})
-            else:
-                self.send_json(200, json.loads(receipt.read_text()))
+            receipt = self.store.receipt(parts[1])
+            self.send_json(200, receipt) if receipt else self.send_json(404, {"error": "receipt unavailable"})
+        elif len(parts) == 4 and parts[2] == "receipts":
+            receipt = self.store.receipt(parts[1], parts[3])
+            self.send_json(200, receipt) if receipt else self.send_json(404, {"error": "receipt unavailable"})
         else:
             self.send_json(404, {"error": "not found"})
 

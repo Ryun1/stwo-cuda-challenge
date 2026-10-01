@@ -142,6 +142,34 @@ class IntakeTests(unittest.TestCase):
         self.assertNotIn(hidden, json.dumps(receipt))
         self.assertEqual(self.store.get(submission_id)["status"], "ranked")
 
+    def test_receipts_survive_tier_progression_and_failed_retry(self):
+        row = self.store.submit(self.repository, self.commit)
+        submission_id = row["id"]
+        (self.store.state / "jobs" / submission_id / "build-attestation.json").write_text(
+            json.dumps({"source_commit": self.commit, "contract_epoch": "test-v1",
+                        "patch_sha256": row["patch_sha256"]}))
+        with self.store.db() as connection:
+            connection.execute("UPDATE submissions SET status='built' WHERE id=?", (submission_id,))
+        for tier in ("smoke", "qualify"):
+            run = self.root / tier
+            run.mkdir()
+            (run / "evidence.json").write_text(json.dumps({
+                "schema": "stwo-cuda-paired-evidence-v1", "contract_epoch": "test-v1",
+                "source_commit": self.commit, "tier": tier,
+                "manifest_sha256": "1" * 64,
+                "candidate": [{"case_id": "pie:15582797_15582797", "time_s": 1}],
+            }))
+            published = publish(self.store, submission_id, run, tier)
+            self.assertEqual(published["tier"], tier)
+            self.assertEqual(self.store.receipt(submission_id)["tier"], tier)
+        self.assertEqual(self.store.receipt(submission_id, "smoke")["tier"], "smoke")
+        self.assertEqual(self.store.receipt(submission_id, "qualify")["tier"], "qualify")
+        failed = self.root / "failed-rank"
+        failed.mkdir()
+        self.assertIsNone(publish(self.store, submission_id, failed, "rank"))
+        self.assertEqual(self.store.get(submission_id)["status"], "judge_failed")
+        self.assertEqual(self.store.receipt(submission_id)["tier"], "qualify")
+
 
 if __name__ == "__main__":
     unittest.main()
