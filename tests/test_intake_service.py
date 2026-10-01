@@ -479,6 +479,32 @@ class IntakeTests(unittest.TestCase):
         self.assertEqual(self.store.get(submission_id)["judge_dispatch"]["state"],
                          "dispatched")
 
+    def test_ambiguous_unclaimed_dispatch_keeps_exclusive_gpu_slot(self):
+        row = self.store.submit(self.repository, self.commit)
+        submission_id = row["id"]
+        prepare(self.store, submission_id)
+        (self.store.state / "jobs" / submission_id / "build-attestation.json").write_text("{}")
+        with self.store.db() as connection:
+            connection.execute("UPDATE submissions SET status='built' WHERE id=?", (submission_id,))
+        limits = {"max_gpu_minutes_24h": WORKFLOW_TIMEOUT_MINUTES * 2,
+                  "max_repository_attempts_24h": 2}
+
+        def lost_response(*_args):
+            raise RuntimeError("lost dispatch response")
+
+        with patch("service.dispatch.validate_record"):
+            with self.assertRaisesRegex(RuntimeError, "lost dispatch response"):
+                dispatch(self.store, submission_id, "smoke", "balanced", "owner/repo",
+                         sender=lost_response, **limits)
+            attempt = self.store.get(submission_id)["judge_dispatch"]["id"]
+            self.assertEqual(self.store.get(submission_id)["judge_dispatch"]["state"],
+                             "dispatched")
+            self.assertEqual(reconcile(self.store, "owner/repo", fetch=lambda _: []),
+                             [{"attempt": attempt, "state": "unclaimed_dispatch"}])
+            with self.assertRaisesRegex(IntakeError, "active-job budget"):
+                dispatch(self.store, submission_id, "smoke", "balanced", "owner/repo",
+                         sender=lambda *_: None, **limits)
+
     def test_dispatch_enforces_tiers_and_one_active_gpu_slot(self):
         row = self.store.submit(self.repository, self.commit)
         submission_id = row["id"]

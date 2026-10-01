@@ -85,13 +85,8 @@ def dispatch(store: Store, submission_id: str, tier: str, track: str,
     try:
         sender(repository, submission_id, tier, track, attempt)
     except Exception:
-        with store.db() as connection:
-            # A transport error may occur after GitHub accepted the run. If
-            # the runner already claimed it, retain the live reservation.
-            connection.execute("""UPDATE judge_dispatches SET state='dispatch_failed'
-                WHERE id=? AND NOT EXISTS
-                (SELECT 1 FROM judge_claims WHERE dispatch_id=?)""",
-                (attempt, attempt))
+        # GitHub may have accepted the run even if its response was lost.
+        # Keep the slot reserved; an unclaimed attempt requires operator review.
         raise
     return {**plan, "state": "dispatched", "attempt": attempt,
             "reserved_gpu_minutes": WORKFLOW_TIMEOUT_MINUTES}

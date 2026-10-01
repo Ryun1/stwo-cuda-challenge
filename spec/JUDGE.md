@@ -101,6 +101,8 @@ delayed older run cannot update a retry. If a workflow is cancelled before the p
 OWNER/REPO` to compare claimed run IDs with terminal GitHub Actions runs and
 release their queue slots. An unclaimed attempt or one with no visible matching
 run stays active until the operator establishes what happened to the dispatch.
+This includes a dispatch CLI transport error before the workflow claims its
+attempt: GitHub may already have accepted it, so the GPU slot remains reserved.
 The workflow is not triggered for every PR. Deployment still needs
 authentication, account rate limits, GPU-minute budgets, isolation, signing,
 and an operator queue policy.
