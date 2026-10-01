@@ -3,7 +3,8 @@
 This is the boundary between a tested challenge repository and a live ranked
 service. The repository is currently private. No self-hosted H200 runner or
 GitHub Actions judge variables are configured, so the manual H200 workflow
-must not be dispatched yet.
+must not be dispatched yet. The concrete setup sequence is in
+[`H200_RUNBOOK.md`](H200_RUNBOOK.md).
 
 | Gate | Current evidence | Required activation evidence |
 | --- | --- | --- |

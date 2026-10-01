@@ -59,7 +59,7 @@ timer, a source-only static estimate, or an unverified proof.
 4. Build both arms, the pinned Rust verifiers, and the canonical preprocessing
    asset with `./setup.sh --build`. Run a small `smoke` on the H200,
    then a complete one-pass `qualify`. A `rank` run performs three ABBA rounds
-   and emits the selected track's score. Ranked service submissions require
+   and emits scores for every eligible track. Ranked service submissions require
    the trusted builder to rebuild the pinned source plus submitted patch.
 
 On a prepared H200 host, the local loop is:
@@ -110,9 +110,10 @@ The downloader checks the committed manifest digest and every blob SHA-256.
 `--case-id` fetches only one case for a cheap smoke loop. The public bundle is
 prepared locally; its HTTPS hosting remains part of deployment.
 
-The service/runner design, cache keys, artifact policy, isolation, and H200
-budget controls are in [spec/JUDGE.md](spec/JUDGE.md). The CPU-only intake
-prototype and trusted dispatcher are runnable locally:
+The service/runner design, artifact policy, isolation requirements, and H200
+budget controls are in [spec/JUDGE.md](spec/JUDGE.md). The
+[H200 operator runbook](spec/H200_RUNBOOK.md) gives the activation sequence.
+The CPU-only intake prototype and trusted dispatcher are runnable locally:
 
 ```sh
 python3 service/intake.py --source workspace/baseline \
