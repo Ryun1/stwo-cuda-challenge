@@ -16,7 +16,8 @@ explaining the mechanism, expected benefit, tests, and known tradeoffs.
 The fast loop is a small local compile/test and one public PIE or recursion
 case. The expensive loop runs the whole H200 cohort only after the candidate
 passes source policy and smoke verification. Correctness comes before speed:
-every Cairo proof needs the pinned official Rust verifier; every recursive
+standalone Cairo proofs need the pinned official Rust verifier and pipeline
+leaves need the pinned production-registry Rust verifier; every recursive
 root must verify and bind the expected contiguous leaves and output roots.
 
 Look especially at fixed-asset upload and reuse, witness/lookup storage

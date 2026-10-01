@@ -46,38 +46,36 @@ timer, a source-only static estimate, or an unverified proof.
 
 ## Development loop
 
-1. Prepare a Linux CUDA/H200 workspace with Zig 0.15.2, CUDA/nvcc, the pinned
-   official Rust Cairo verifier, and the judge-owned fixture mount.
-   `./setup.sh` creates separate pinned baseline and editable source checkouts;
-   it does not download private PIEs.
+1. Prepare a Linux CUDA/H200 workspace with Zig 0.15.2, CUDA/nvcc, Cargo,
+   `nightly-2026-01-15`, and `git lfs pull`. `./setup.sh` creates separate
+   pinned baseline and editable source checkouts; it does not download private
+   PIEs.
 2. Work in `workspace/stwo-zig` under the allowed CUDA source paths. Run
    relevant small local tests before a GPU trial.
 3. Capture the source diff with `./scripts/capture-candidate.sh`. Optionally
    attach a prebuilt binary digest for the fast screening tier. The binary is
    never a substitute for source in a ranked submission.
-4. Build both arms with `./setup.sh --build`. Run a small `smoke` on the H200,
+4. Build both arms, the pinned Rust verifiers, and the canonical preprocessing
+   asset with `./setup.sh --build`. Run a small `smoke` on the H200,
    then a complete one-pass `qualify`. A `rank` run performs three ABBA rounds
    and emits the selected track's score. Ranked service submissions require
    the trusted builder to rebuild the pinned source plus submitted patch.
 
-For a prepared H200 host, the complete local command is:
+On a prepared H200 host, the local loop is:
 
 ```sh
-./benchmark.sh --tier smoke --track balanced \
-  --baseline-source workspace/baseline \
-  --candidate-source workspace/stwo-zig \
-  --candidate-patch candidate/changes.patch \
-  --baseline-attestation .cache/attestations/baseline.json \
-  --candidate-attestation .cache/attestations/candidate.json \
-  --fixtures data/inputs \
-  --preprocessed /absolute/path/preprocessed-canonical.bin \
-  --artifact-dir /absolute/path/cuda-artifact-cache \
-  --cairo-verifier /absolute/path/stwo-cairo-official-verifier \
-  --registry-cairo-verifier /absolute/path/verify_cairo_cuda_json \
-  --out .runs/local-smoke
+git lfs pull
+./setup.sh
+# Edit allowed CUDA source paths in workspace/stwo-zig.
+./scripts/capture-candidate.sh
+./setup.sh --build
+./benchmark.sh --tier smoke --track balanced
 ```
 
 Use `--tier qualify` for all cases once and `--tier rank` for paired scoring.
+The benchmark defaults to the checked-in public inputs and setup assets under
+`.cache/`; operator paths and the private manifest can be supplied with CLI
+flags or the `STWO_*` variables shown in `.github/workflows/h200-rank.yml`.
 The checked-in public files use Git LFS: run `git lfs pull` and
 `python3 scripts/check_data.py` after cloning. In deployment the judge may
 mount its own read-only content-addressed store with the same manifest-relative
@@ -91,11 +89,9 @@ canonical`. Keep the 2 GiB asset outside Git.
 
 Standalone PIE proofs use the pinned `stwo-cairo-official-verifier`. Registry
 leaf proofs use the pinned Rust `verify_cairo_cuda_json` helper because their
-Blake2s-M31/lifted proof shape is different. Build that helper from the pinned
-baseline source with `cargo +nightly-2026-01-15 build --release --bin
-verify_cairo_cuda_json --manifest-path
-workspace/baseline/tools/stwo-circuit-oracle-rs/Cargo.toml`, and pass its
-result as `--registry-cairo-verifier`.
+Blake2s-M31/lifted proof shape is different. `./setup.sh --build` creates both
+verifiers from the pinned baseline source; `--registry-cairo-verifier` can
+override the latter path when using operator-managed assets.
 
 Participants do not need the PIE API key. The operator creates a static
 content-addressed bundle once, then hosts that directory over HTTPS:

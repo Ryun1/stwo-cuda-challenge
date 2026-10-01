@@ -2,6 +2,7 @@
 """Check out the pinned stwo-zig source and optionally compile CUDA products."""
 
 import argparse
+import hashlib
 import json
 from pathlib import Path
 import shutil
@@ -9,11 +10,49 @@ import subprocess
 
 
 ROOT = Path(__file__).resolve().parents[1]
+PREPROCESSED_SHA256 = "4d4fda06dfa3bca19554510a158f6c50abad06a74d29c17885ed4cbb88ada34d"
 
 
 def run(*args: str, cwd: Path | None = None) -> None:
     print("+", " ".join(args), flush=True)
     subprocess.run(args, cwd=cwd, check=True)
+
+
+def sha(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as source:
+        for block in iter(lambda: source.read(1 << 20), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def prepare_judge_assets(baseline: Path) -> None:
+    """Build pinned independent verifiers and the shared canonical coefficient asset."""
+    if not shutil.which("cargo"):
+        raise SystemExit("Cargo is required for the pinned Rust verifiers")
+    official_target = ROOT / ".cache/rust-official"
+    registry_target = ROOT / ".cache/rust-registry"
+    run("cargo", "build", "--release", "--locked", "--manifest-path",
+        str(baseline / "tools/stwo-cairo-official-verifier-rs/Cargo.toml"),
+        "--target-dir", str(official_target))
+    run("cargo", "+nightly-2026-01-15", "build", "--release", "--locked",
+        "--bin", "verify_cairo_cuda_json", "--manifest-path",
+        str(baseline / "tools/stwo-circuit-oracle-rs/Cargo.toml"),
+        "--target-dir", str(registry_target))
+    for path in (official_target / "release/stwo-cairo-official-verifier",
+                 registry_target / "release/verify_cairo_cuda_json"):
+        if not path.is_file():
+            raise SystemExit(f"pinned verifier build did not produce {path}")
+    asset = ROOT / ".cache/preprocessed-canonical.bin"
+    if not asset.is_file() or sha(asset) != PREPROCESSED_SHA256:
+        asset.unlink(missing_ok=True)
+        run("zig", "build", "cairo-preprocessed-export", "-Doptimize=ReleaseFast", cwd=baseline)
+        run(str(baseline / "zig-out/bin/cairo-preprocessed-export"), str(asset),
+            "canonical", cwd=baseline)
+        if sha(asset) != PREPROCESSED_SHA256:
+            asset.unlink(missing_ok=True)
+            raise SystemExit("canonical preprocessed asset differs from the pinned reference")
+    (ROOT / ".cache/cuda-artifacts").mkdir(parents=True, exist_ok=True)
 
 
 def main() -> None:
@@ -53,6 +92,7 @@ def main() -> None:
         for tree in (baseline, workspace):
             run("zig", "build", "stwo-cairo-cuda", "circuit-recursion-cuda-resident",
                 "-Doptimize=ReleaseFast", cwd=tree)
+        prepare_judge_assets(baseline)
         empty_patch = ROOT / ".cache/empty.patch"
         empty_patch.parent.mkdir(parents=True, exist_ok=True)
         empty_patch.write_bytes(b"")

@@ -2,9 +2,11 @@
 """Interleave baseline and candidate H200 arms, then score trusted receipts."""
 
 import argparse
+from datetime import datetime, timezone
 import hashlib
 import json
 import math
+import os
 from pathlib import Path
 import statistics
 import subprocess
@@ -16,6 +18,10 @@ from attestation import validate_record
 
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def setting(name: str, fallback: Path) -> Path:
+    return Path(os.environ.get(name, str(fallback)))
 
 
 def run_arm(args, source: Path, out: Path, round_id: int) -> list[dict]:
@@ -75,20 +81,38 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--tier", choices=("smoke", "qualify", "rank"), default="smoke")
     parser.add_argument("--track", choices=("latency", "memory", "balanced"), default="balanced")
-    parser.add_argument("--baseline-source", type=Path, required=True)
-    parser.add_argument("--candidate-source", type=Path, required=True)
-    parser.add_argument("--candidate-patch", type=Path, required=True)
-    parser.add_argument("--baseline-attestation", type=Path, required=True)
-    parser.add_argument("--candidate-attestation", type=Path, required=True)
-    parser.add_argument("--fixtures", type=Path, required=True)
-    parser.add_argument("--preprocessed", type=Path, required=True)
-    parser.add_argument("--artifact-dir", type=Path, required=True)
-    parser.add_argument("--cairo-verifier", type=Path, required=True)
-    parser.add_argument("--registry-cairo-verifier", type=Path, required=True)
-    parser.add_argument("--out", type=Path, required=True)
-    parser.add_argument("--manifest", type=Path, default=ROOT / "fixtures/public-v1.json")
+    parser.add_argument("--baseline-source", type=Path,
+                        default=setting("STWO_BASELINE_SOURCE", ROOT / "workspace/baseline"))
+    parser.add_argument("--candidate-source", type=Path,
+                        default=setting("STWO_CANDIDATE_SOURCE", ROOT / "workspace/stwo-zig"))
+    parser.add_argument("--candidate-patch", type=Path,
+                        default=setting("STWO_CANDIDATE_PATCH", ROOT / "candidate/changes.patch"))
+    parser.add_argument("--baseline-attestation", type=Path,
+                        default=setting("STWO_BASELINE_ATTESTATION", ROOT / ".cache/attestations/baseline.json"))
+    parser.add_argument("--candidate-attestation", type=Path,
+                        default=setting("STWO_CANDIDATE_ATTESTATION", ROOT / ".cache/attestations/candidate.json"))
+    parser.add_argument("--fixtures", type=Path,
+                        default=setting("STWO_FIXTURE_ROOT", ROOT / "data/inputs"))
+    parser.add_argument("--preprocessed", type=Path,
+                        default=setting("STWO_PREPROCESSED_ASSET", ROOT / ".cache/preprocessed-canonical.bin"))
+    parser.add_argument("--artifact-dir", type=Path,
+                        default=setting("STWO_CUDA_ARTIFACT_DIR", ROOT / ".cache/cuda-artifacts"))
+    parser.add_argument("--cairo-verifier", type=Path,
+                        default=setting("STWO_CAIRO_VERIFIER", ROOT / ".cache/rust-official/release/stwo-cairo-official-verifier"))
+    parser.add_argument("--registry-cairo-verifier", type=Path,
+                        default=setting("STWO_REGISTRY_CAIRO_VERIFIER", ROOT / ".cache/rust-registry/release/verify_cairo_cuda_json"))
+    parser.add_argument("--out", type=Path, default=ROOT / ".runs" /
+                        f"{datetime.now(timezone.utc):%Y%m%dT%H%M%SZ}-{os.getpid()}")
+    parser.add_argument("--manifest", type=Path,
+                        default=setting("STWO_RANKED_MANIFEST", ROOT / "fixtures/public-v1.json"))
     parser.add_argument("--config", type=Path, default=ROOT / "benchmark.json")
     args = parser.parse_args()
+    for path in (args.baseline_source, args.candidate_source, args.candidate_patch,
+                 args.baseline_attestation, args.candidate_attestation, args.fixtures,
+                 args.preprocessed, args.cairo_verifier, args.registry_cairo_verifier,
+                 args.manifest):
+        if not path.exists():
+            parser.error(f"required setup asset missing: {path}; run ./setup.sh --build or pass its path")
     args.out.mkdir(parents=True, exist_ok=True)
     manifest_bytes = args.manifest.read_bytes()
     manifest = json.loads(manifest_bytes)
