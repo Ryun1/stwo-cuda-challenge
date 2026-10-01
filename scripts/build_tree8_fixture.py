@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build the public eight-distinct-PIE fold fixture from pinned main artifacts."""
+"""Build a state-contiguous fold fixture (the public eight-leaf tree by default)."""
 
 import argparse
 import hashlib
@@ -35,24 +35,32 @@ def main() -> None:
     parser.add_argument("--oracle", type=Path, help="pinned Rust adaptation oracle, if JSON needs generation")
     parser.add_argument("--proving-root", type=Path, help="pinned proving@5a7c5ed checkout")
     parser.add_argument("--rust-reducer", type=Path, help="independently prove and compare the full tree in Rust")
+    parser.add_argument("--name", action="append", help="ordered PIE name; defaults to the public eight")
+    parser.add_argument("--downloads-dir", default="_tree8_downloads")
+    parser.add_argument("--adapted-dir", default="_tree8_adapted")
+    parser.add_argument("--proofs-dir", default="_tree8_proofs")
     args = parser.parse_args()
     source = args.source.resolve()
     fixtures = args.fixtures.resolve()
+    names = args.name or NAMES
+    if len(names) < 2 or len(names) != len(set(names)):
+        parser.error("fold requires at least two distinct PIE names")
+    downloads = (fixtures / args.downloads_dir).resolve()
+    adapted_dir = (fixtures / args.adapted_dir).resolve()
+    out = (fixtures / args.proofs_dir).resolve()
+    if any(not path.is_relative_to(fixtures) for path in (downloads, adapted_dir, out)):
+        parser.error("fold directories must stay inside the external fixture store")
     if subprocess.check_output(["git", "-C", str(source), "rev-parse", "HEAD"], text=True).strip() != SOURCE_COMMIT:
         parser.error("source is not pinned to upstream main at PR #204")
     prover = args.prover.resolve() if args.prover else source / "zig-out/bin/stwo-circuit-recursion-cpu"
     if not prover.is_file():
         parser.error("build source with zig build stwo-circuit-recursion-cpu -Doptimize=ReleaseFast -j2")
-    out = fixtures / "_tree8_proofs"
     out.mkdir(parents=True, exist_ok=True)
     registry = source / "vectors/circuit/official/registries/production.json"
     program = source / "vectors/circuit/official/programs/leaf_simple_bootloader_compiled.json"
-    manifest_rows = json.loads((fixtures / "_tree8_downloads/manifest.json").read_text())["rows"]
-    if [row["pie"] for row in manifest_rows] != NAMES or any(
-        row["first"] != 15578420 + 10 * index or row["last"] != row["first"] + 9
-        for index, row in enumerate(manifest_rows)
-    ):
-        parser.error("source PIE sequence differs from expected contiguous eight")
+    manifest_rows = json.loads((downloads / "manifest.json").read_text())["rows"]
+    if [row["pie"] for row in manifest_rows] != names:
+        parser.error("downloaded PIE sequence differs from requested fold")
     sys.path.insert(0, str(source / "tools/starknet-block-collector"))
     from pie_info import pie_summary  # type: ignore[import-not-found]
     headers = []
@@ -71,16 +79,16 @@ def main() -> None:
         headers.append(header)
     rows = []
     leaves = []
-    for name, source_row in zip(NAMES, manifest_rows):
-        adapted = fixtures / "_tree8_adapted" / f"{name}.cpi"
-        reference_input = fixtures / "_tree8_adapted" / f"{name}.json"
-        preimage = fixtures / "_tree8_adapted" / f"{name}.preimage.hex.json"
+    for name, source_row in zip(names, manifest_rows):
+        adapted = adapted_dir / f"{name}.cpi"
+        reference_input = adapted_dir / f"{name}.json"
+        preimage = adapted_dir / f"{name}.preimage.hex.json"
         if not adapted.is_file() or not preimage.is_file():
             parser.error(f"missing adapted input or preimage for {name}")
         if not reference_input.is_file():
             if not args.oracle or not args.proving_root:
                 parser.error(f"CPU reference needs JSON input for {name}; supply --oracle and --proving-root")
-            request = fixtures / "_tree8_adapted" / f"{name}.bootloader_input.json"
+            request = adapted_dir / f"{name}.bootloader_input.json"
             run([str(args.oracle), "adapt-program", "--proving-root", str(args.proving_root),
                  "--program", "crates/cairo-program-runner-lib/resources/compiled_programs/bootloaders/leaf_simple_bootloader_compiled.json",
                  "--program-input", str(request), "--output", str(reference_input)],
@@ -126,7 +134,7 @@ def main() -> None:
              "--program_output", str(outputs), "--packed_output_path", str(packed)],
             out / "fold.log")
     receipt = {
-        "schema": "stwo-cuda-challenge-tree8-v1",
+        "schema": "stwo-cuda-challenge-tree8-v1" if names == NAMES else "stwo-cuda-challenge-fold-v1",
         "source_commit": SOURCE_COMMIT,
         "registry_sha256": digest(registry),
         "program_sha256": digest(program),
@@ -155,7 +163,7 @@ def main() -> None:
             "root": rust_hashes,
         }
     (out / "receipt.json").write_text(json.dumps(receipt, indent=2) + "\n")
-    print(f"eight-leaf root: {receipt['root']['proof_sha256']}")
+    print(f"{len(names)}-leaf root: {receipt['root']['proof_sha256']}")
 
 
 if __name__ == "__main__":
