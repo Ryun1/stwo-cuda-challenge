@@ -24,7 +24,8 @@ Start with [TASK.md](TASK.md). The fixed contract is [benchmark.json](benchmark.
 the workload and proof obligations are in [spec/WORKLOADS.md](spec/WORKLOADS.md),
 and the scoring and tradeoffs are in [spec/SCORING.md](spec/SCORING.md).
 The specific upstream design choices are recorded in
-[spec/REFERENCES.md](spec/REFERENCES.md).
+[spec/REFERENCES.md](spec/REFERENCES.md). The exact boundary before enabling
+the live H200 leaderboard is in [spec/ACTIVATION.md](spec/ACTIVATION.md).
 
 Three rankings use the **same validated proofs and measurements**. The public
 basket currently has six component-diverse PIEs, two fixed-leaf root folds
