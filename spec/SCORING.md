@@ -73,8 +73,9 @@ A new score must beat the current track leader by at least 1% **and** exceed
 the paired A/A noise band. The runner records baseline A0/A1 dispersion in
 each ABBA round. The promotion threshold against baseline is the larger of
 1% or twice the median absolute A/A log dispersion (converted back to a
-ratio). A deterministic 2,000-resample bootstrap over paired rounds produces
-95% score intervals; the lower bound must clear that threshold. For an
+ratio). A deterministic 2,000-resample bootstrap over paired rounds recomputes
+the same per-case median ratios and family-weighted score on each draw. It
+produces 95% score intervals; the lower bound must clear that threshold. For an
 existing leader, compare against a fresh leader run on the same host using
 the same rule. Every per-case ratio is published; a median-only lucky run is
 insufficient.

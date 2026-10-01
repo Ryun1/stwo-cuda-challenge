@@ -63,6 +63,20 @@ def rows_by_case(rows: list, expected_ids: set[str], label: str, limit: int,
     return grouped
 
 
+def resampled_log_ratios(per_case: list[dict], weights: dict[str, float],
+                         indices: list[int]) -> tuple[float, float]:
+    """Use the scored median-of-paired-ratios estimator in every bootstrap draw."""
+    log_time = 0.0
+    log_memory = 0.0
+    for case in per_case:
+        weight = weights[case["id"]]
+        time_ratio = statistics.median(case["time_pair_ratios"][index] for index in indices)
+        memory_ratio = statistics.median(case["memory_pair_ratios"][index] for index in indices)
+        log_time += weight * math.log(time_ratio)
+        log_memory += weight * math.log(memory_ratio)
+    return log_time, log_memory
+
+
 def aggregate(manifest: dict, evidence: dict, manifest_hash: str, config: dict) -> dict:
     if (manifest.get("contract_epoch") != config["contractEpoch"] or
             manifest.get("source_commit") != config["sourceCommit"]):
@@ -85,7 +99,7 @@ def aggregate(manifest: dict, evidence: dict, manifest_hash: str, config: dict) 
     per_case = []
     log_time = 0.0
     log_memory = 0.0
-    round_logs: dict[int, list[float]] = {}
+    weights = {}
     expected_rounds = None
     for case in cases:
         case_id = case["id"]
@@ -103,12 +117,9 @@ def aggregate(manifest: dict, evidence: dict, manifest_hash: str, config: dict) 
         time_ratio = statistics.median(time_ratios)
         memory_ratio = statistics.median(memory_ratios)
         weight = 1 / (len(FAMILIES) * family_counts[case["family"]])
+        weights[case_id] = weight
         log_time += weight * math.log(time_ratio)
         log_memory += weight * math.log(memory_ratio)
-        for n, tr, mr in zip(paired_rounds, time_ratios, memory_ratios):
-            pair = round_logs.setdefault(n, [0.0, 0.0])
-            pair[0] += weight * math.log(tr)
-            pair[1] += weight * math.log(mr)
         per_case.append({"id": case_id, "family": case["family"], "paired_rounds": paired_rounds,
                          "time_ratio": time_ratio, "memory_ratio": memory_ratio,
                          "time_pair_ratios": time_ratios, "memory_pair_ratios": memory_ratios})
@@ -118,13 +129,11 @@ def aggregate(manifest: dict, evidence: dict, manifest_hash: str, config: dict) 
                 "memory": rt <= 1.25 and all(x["time_ratio"] <= 1.50 for x in per_case),
                 "balanced": rt <= 1.25 and all(x["time_ratio"] <= 1.50 and
                                                    x["memory_ratio"] <= 1.50 for x in per_case)}
-    paired = [round_logs[n] for n in sorted(round_logs)]
     rng = random.Random(20261001)
     sample_scores = {name: [] for name in TRACKS}
     for _ in range(2000):
-        sample = [paired[rng.randrange(len(paired))] for _ in paired]
-        lt = statistics.mean(row[0] for row in sample)
-        lm = statistics.mean(row[1] for row in sample)
+        indices = [rng.randrange(len(expected_rounds)) for _ in expected_rounds]
+        lt, lm = resampled_log_ratios(per_case, weights, indices)
         sample_scores["latency"].append(math.exp(-lt))
         sample_scores["memory"].append(math.exp(-lm))
         sample_scores["balanced"].append(math.exp(-(lt + lm) / 2))

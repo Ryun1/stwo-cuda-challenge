@@ -1,6 +1,7 @@
 import copy
 import hashlib
 import json
+import math
 from pathlib import Path
 import sys
 import unittest
@@ -8,7 +9,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-from harness.score import InvalidRun, aggregate
+from harness.score import InvalidRun, aggregate, resampled_log_ratios
 
 
 class ScoreTests(unittest.TestCase):
@@ -101,6 +102,22 @@ class ScoreTests(unittest.TestCase):
         result = self.score(evidence)
         self.assertTrue(result["tracks"]["latency"]["promotable_against_baseline"])
         self.assertEqual(len(result["tracks"]["latency"]["confidence_95"]), 2)
+
+    def test_bootstrap_reuses_the_scored_median_estimator(self):
+        evidence = self.evidence()
+        case_id = self.manifest["cases"][0]["id"]
+        for row in evidence["candidate"]:
+            if row["case_id"] == case_id:
+                row["time_s"] = [10.0, 10.0, 100.0][row["round"]]
+        result = self.score(evidence)
+        weights = {case["id"]: 1 / (3 * sum(c["family"] == case["family"]
+                                       for c in self.manifest["cases"]))
+                   for case in self.manifest["cases"]}
+        scored_log, _ = resampled_log_ratios(result["per_case"], weights, [0, 1, 2])
+        self.assertAlmostEqual(scored_log, 0.0)
+        self.assertAlmostEqual(result["r_time"], 1.0)
+        outlier_log, _ = resampled_log_ratios(result["per_case"], weights, [2, 2, 1])
+        self.assertAlmostEqual(outlier_log, weights[case_id] * math.log(10))
 
 
 if __name__ == "__main__":
