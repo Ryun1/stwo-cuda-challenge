@@ -28,13 +28,16 @@ The H200 judge uses only the trusted worker's attested binaries, selects its
 fixture set after source fixation, and performs the proof runs. The trusted
 verifier and score code are never built from participant source.
 
-The H200 service uses one job per exclusive device, an unprivileged uid,
+The H200 service must use one job per exclusive device, an unprivileged uid,
 read-only fixture mount, blocked outbound network, bounded process tree,
 runtime/output limits, and a fresh work directory. It refuses a shared or
 busy GPU. The judge's NVML monitor and wall clock run outside the candidate
 container/uid. Kill and discard the entire process group on timeout. The
 candidate subprocess receives only a fixed runtime environment allowlist and
 the three judge-owned CUDA asset settings, never the host's service tokens.
+The exact file/device/network boundary and its required H200 probe are in
+[`ISOLATION.md`](ISOLATION.md). That boundary is an activation gate, not a
+claim that the current local prototype is already isolated.
 
 ## Validation tiers
 

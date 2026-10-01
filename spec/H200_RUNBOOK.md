@@ -39,7 +39,8 @@ fixture transfers, and hash checks happen before its timed proof work.
    `python3 service/activation.py --repository OWNER/REPO`; it prints no
    variable values and must pass before dispatch. Qualify process isolation,
    outbound-network blocking, read-only fixture mounts, and receipt signing
-   separately before opening the public leaderboard.
+   separately before opening the public leaderboard. The required access
+   matrix and denied-access probes are in [`ISOLATION.md`](ISOLATION.md).
 
 ## Qualify the exact workflow
 
