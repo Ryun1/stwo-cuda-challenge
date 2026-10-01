@@ -1,9 +1,14 @@
 name: H200 qualification and ranking
+run-name: H200 attempt-${{ inputs.attempt }} submission-${{ inputs.submission_id }} tier-${{ inputs.tier }}
 on:
   workflow_dispatch:
     inputs:
       submission_id:
         description: "Trusted intake ID (letters, digits, dash only)"
+        required: true
+        type: string
+      attempt:
+        description: "Trusted dispatcher attempt ID"
         required: true
         type: string
       tier:
@@ -25,6 +30,7 @@ jobs:
     if: github.ref == 'refs/heads/main'
     env:
       SUBMISSION_ID: ${{ inputs.submission_id }}
+      ATTEMPT: ${{ inputs.attempt }}
       TIER: ${{ inputs.tier }}
       TRACK: ${{ inputs.track }}
       FIXTURE_ROOT: ${{ vars.STWO_FIXTURE_ROOT }}
@@ -48,6 +54,7 @@ jobs:
         id: judge
         run: |
           [[ "$SUBMISSION_ID" =~ ^[A-Za-z0-9-]+$ ]]
+          [[ "$ATTEMPT" =~ ^[1-9][0-9]*$ ]]
           python3 harness/check_contract.py
           ./benchmark.sh --tier "$TIER" --track "$TRACK" \
             --baseline-source "$BASELINE_ROOT/source" \
@@ -68,6 +75,7 @@ jobs:
           python3 service/publish_receipt.py \
             --state "$SUBMISSION_STATE" --source "$BASELINE_ROOT/source" \
             --submission-id "$SUBMISSION_ID" --run-dir "$RUN_DIR" --tier "$TIER" \
+            --attempt "$ATTEMPT" \
             --judge-outcome "${{ steps.judge.outcome }}"
       - uses: actions/upload-artifact@v4
         if: always()

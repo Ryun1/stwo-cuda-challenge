@@ -21,10 +21,12 @@ TIERS = ("smoke", "qualify", "rank")
 TRACKS = ("latency", "memory", "balanced")
 
 
-def github_dispatch(repository: str, submission_id: str, tier: str, track: str) -> None:
+def github_dispatch(repository: str, submission_id: str, tier: str, track: str,
+                    attempt: int) -> None:
     subprocess.run(["gh", "workflow", "run", "h200-rank.yml", "--repo", repository,
                     "--ref", "main", "-f", f"submission_id={submission_id}",
-                    "-f", f"tier={tier}", "-f", f"track={track}"], check=True)
+                    "-f", f"tier={tier}", "-f", f"track={track}",
+                    "-f", f"attempt={attempt}"], check=True)
 
 
 def dispatch(store: Store, submission_id: str, tier: str, track: str,
@@ -61,7 +63,7 @@ def dispatch(store: Store, submission_id: str, tier: str, track: str,
             (submission_id, tier, track, datetime.now(timezone.utc).isoformat()))
         attempt = cursor.lastrowid
     try:
-        sender(repository, submission_id, tier, track)
+        sender(repository, submission_id, tier, track, attempt)
     except Exception:
         with store.db() as connection:
             connection.execute("UPDATE judge_dispatches SET state='dispatch_failed' WHERE id=?",

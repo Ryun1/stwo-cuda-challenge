@@ -13,6 +13,7 @@ from service.intake import Handler, IntakeError, IntakeHTTPServer, Store, fetch_
 from service.build_worker import prepare
 from service.publish_receipt import publish
 from service.dispatch import dispatch
+from service.reconcile import reconcile, workflow_title
 
 
 def git(repo: Path, *args: str) -> str:
@@ -222,6 +223,49 @@ class IntakeTests(unittest.TestCase):
                 publish(self.store, submission_id, run, "rank")
             self.assertEqual(self.store.get(submission_id)["judge_dispatch"]["state"], "failed")
             self.assertIsNone(self.store.receipt(submission_id, "rank"))
+
+    def test_late_attempt_cannot_fail_or_complete_a_retry(self):
+        row = self.store.submit(self.repository, self.commit)
+        submission_id = row["id"]
+        with self.store.db() as connection:
+            connection.execute("UPDATE submissions SET status='built' WHERE id=?", (submission_id,))
+            old = connection.execute("""INSERT INTO judge_dispatches
+                (submission_id, tier, track, state, created_utc)
+                VALUES (?, 'smoke', 'balanced', 'failed', '2026-10-01T00:00:00Z')""",
+                (submission_id,)).lastrowid
+            retry = connection.execute("""INSERT INTO judge_dispatches
+                (submission_id, tier, track, state, created_utc)
+                VALUES (?, 'smoke', 'balanced', 'dispatched', '2026-10-01T00:00:01Z')""",
+                (submission_id,)).lastrowid
+        run = self.root / "late-attempt"
+        run.mkdir()
+        with self.assertRaises(IntakeError):
+            publish(self.store, submission_id, run, "smoke", attempt=old)
+        self.assertEqual(self.store.get(submission_id)["judge_dispatch"]["id"], retry)
+        self.assertEqual(self.store.get(submission_id)["judge_dispatch"]["state"], "dispatched")
+        self.assertEqual(self.store.get(submission_id)["status"], "built")
+
+    def test_reconcile_releases_only_terminal_exact_workflow(self):
+        row = self.store.submit(self.repository, self.commit)
+        submission_id = row["id"]
+        with self.store.db() as connection:
+            connection.execute("UPDATE submissions SET status='built' WHERE id=?", (submission_id,))
+            attempt = connection.execute("""INSERT INTO judge_dispatches
+                (submission_id, tier, track, state, created_utc)
+                VALUES (?, 'smoke', 'balanced', 'dispatched', '2026-10-01T00:00:00Z')""",
+                (submission_id,)).lastrowid
+        title = workflow_title(attempt, submission_id, "smoke")
+        self.assertEqual(reconcile(self.store, "owner/repo", fetch=lambda _: []),
+                         [{"attempt": attempt, "state": "awaiting_github_run"}])
+        self.assertEqual(reconcile(self.store, "owner/repo", fetch=lambda _: [
+            {"displayTitle": title, "status": "in_progress", "databaseId": 42}])[0]["state"],
+            "workflow_active")
+        self.assertEqual(self.store.get(submission_id)["judge_dispatch"]["state"], "dispatched")
+        released = reconcile(self.store, "owner/repo", fetch=lambda _: [
+            {"displayTitle": title, "status": "completed", "conclusion": "cancelled",
+             "databaseId": 42}])
+        self.assertEqual(released[0]["state"], "released_terminal_run")
+        self.assertEqual(self.store.get(submission_id)["judge_dispatch"]["state"], "failed")
 
     def test_dispatch_enforces_tiers_and_one_active_gpu_slot(self):
         row = self.store.submit(self.repository, self.commit)

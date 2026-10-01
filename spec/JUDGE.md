@@ -64,6 +64,13 @@ Malformed or mismatched judge artifacts also fail the attempt and release its
 single-GPU queue slot.
 `service/dispatch.py` checks tier prerequisites and allows one active H200
 dispatch at a time before triggering the manual GitHub Actions workflow.
+Each workflow run carries its immutable dispatcher attempt ID. Publication can
+only complete that exact active attempt; a delayed older run cannot update a
+retry. If a workflow is cancelled before the publication step, run
+`python3 service/reconcile.py --state STATE --source BASELINE --repository
+OWNER/REPO` to compare active attempts with terminal GitHub Actions runs and
+release their queue slots. An attempt with no visible matching run stays active
+until the operator establishes what happened to the dispatch.
 The workflow is not triggered for every PR. Deployment still needs
 authentication, account rate limits, GPU-minute budgets, isolation, signing,
 and an operator queue policy.

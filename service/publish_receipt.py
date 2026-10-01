@@ -19,39 +19,55 @@ def public_ids() -> set[str]:
     return {case["id"] for case in manifest["cases"]}
 
 
-def mark_failed(store: Store, submission_id: str, tier: str) -> None:
+def mark_failed(store: Store, submission_id: str, tier: str,
+                attempt: int | None = None) -> None:
     """Release the single-GPU slot even when the judge left bad artifacts."""
     with store.db() as connection:
+        active = connection.execute("""SELECT id FROM judge_dispatches
+            WHERE submission_id=? AND tier=? AND state IN ('reserved', 'dispatched')
+              AND (? IS NULL OR id=?) ORDER BY id DESC LIMIT 1""",
+            (submission_id, tier, attempt, attempt)).fetchone()
+        if attempt is not None and active is None:
+            return
+        if active is not None:
+            connection.execute("UPDATE judge_dispatches SET state='failed' WHERE id=?",
+                               (active["id"],))
         connection.execute("UPDATE submissions SET status='judge_failed' WHERE id=?", (submission_id,))
-        connection.execute("""UPDATE judge_dispatches SET state='failed'
-            WHERE id=(SELECT id FROM judge_dispatches WHERE submission_id=? AND tier=?
-                      AND state IN ('reserved', 'dispatched') ORDER BY id DESC LIMIT 1)""",
-            (submission_id, tier))
 
 
 def publish(store: Store, submission_id: str, run_dir: Path, tier: str,
-            *, judge_succeeded: bool = True) -> dict | None:
+            *, judge_succeeded: bool = True, attempt: int | None = None) -> dict | None:
     try:
         return publish_validated(store, submission_id, run_dir, tier,
-                                 judge_succeeded=judge_succeeded)
+                                 judge_succeeded=judge_succeeded, attempt=attempt)
     except (IntakeError, OSError, ValueError, KeyError, TypeError):
-        mark_failed(store, submission_id, tier)
+        mark_failed(store, submission_id, tier, attempt)
         raise
 
 
 def publish_validated(store: Store, submission_id: str, run_dir: Path, tier: str,
-                      *, judge_succeeded: bool) -> dict | None:
+                      *, judge_succeeded: bool, attempt: int | None) -> dict | None:
     row = store.get(submission_id)
     if (not row or row["contract_epoch"] != store.config["contractEpoch"] or
             row["status"] not in ("built", "smoked", "qualified", "ranked", "judge_failed")):
         raise IntakeError("submission has no trusted build")
     if tier not in ("smoke", "qualify", "rank"):
         raise IntakeError("unknown judge tier")
+    if attempt is not None:
+        if attempt < 1:
+            raise IntakeError("invalid dispatch attempt")
+        with store.db() as connection:
+            active = connection.execute("""SELECT 1 FROM judge_dispatches
+                WHERE id=? AND submission_id=? AND tier=?
+                  AND state IN ('reserved', 'dispatched')""",
+                (attempt, submission_id, tier)).fetchone()
+        if active is None:
+            raise IntakeError("dispatch attempt is no longer active")
     evidence_path = run_dir / "evidence.json"
     score_path = run_dir / "scorecard.json"
     if (not judge_succeeded or not evidence_path.is_file() or
             (tier == "rank" and not score_path.is_file())):
-        mark_failed(store, submission_id, tier)
+        mark_failed(store, submission_id, tier, attempt)
         return None
     evidence = json.loads(evidence_path.read_text())
     if (evidence.get("schema") != "stwo-cuda-paired-evidence-v1" or
@@ -72,6 +88,7 @@ def publish_validated(store: Store, submission_id: str, run_dir: Path, tier: str
     candidate = [entry for entry in evidence["candidate"] if entry["case_id"] in visible]
     receipt = {"schema": "stwo-cuda-public-receipt-v1", "submission_id": submission_id,
                "contract_epoch": store.config["contractEpoch"], "tier": tier,
+               "dispatch_attempt": attempt,
                "patch_sha256": row["patch_sha256"],
                "build_attestation_sha256": hashlib.sha256(build_bytes).hexdigest(),
                "manifest_sha256": evidence["manifest_sha256"],
@@ -99,15 +116,23 @@ def publish_validated(store: Store, submission_id: str, run_dir: Path, tier: str
             output.write(data)
     status = {"smoke": "smoked", "qualify": "qualified", "rank": "ranked"}[tier]
     with store.db() as connection:
+        if attempt is not None:
+            updated = connection.execute("""UPDATE judge_dispatches SET state='completed'
+                WHERE id=? AND submission_id=? AND tier=?
+                  AND state IN ('reserved', 'dispatched')""",
+                (attempt, submission_id, tier))
+            if updated.rowcount != 1:
+                raise IntakeError("dispatch attempt ended before receipt publication")
         connection.execute("""INSERT OR IGNORE INTO submission_receipts
             (submission_id, tier, receipt_sha256, created_utc) VALUES (?, ?, ?, ?)""",
             (submission_id, tier, digest, datetime.now(timezone.utc).isoformat()))
         connection.execute("UPDATE submissions SET status=?, receipt_sha256=? WHERE id=?",
                            (status, digest, submission_id))
-        connection.execute("""UPDATE judge_dispatches SET state='completed'
-            WHERE id=(SELECT id FROM judge_dispatches WHERE submission_id=? AND tier=?
-                      AND state IN ('reserved', 'dispatched') ORDER BY id DESC LIMIT 1)""",
-            (submission_id, tier))
+        if attempt is None:
+            connection.execute("""UPDATE judge_dispatches SET state='completed'
+                WHERE id=(SELECT id FROM judge_dispatches WHERE submission_id=? AND tier=?
+                          AND state IN ('reserved', 'dispatched') ORDER BY id DESC LIMIT 1)""",
+                (submission_id, tier))
     return receipt
 
 
@@ -118,13 +143,16 @@ def main() -> None:
     parser.add_argument("--submission-id", required=True)
     parser.add_argument("--run-dir", type=Path, required=True)
     parser.add_argument("--tier", choices=("smoke", "qualify", "rank"), required=True)
+    parser.add_argument("--attempt", type=int, required=True,
+                        help="trusted dispatcher attempt ID for this exact workflow run")
     parser.add_argument("--judge-outcome", choices=("success", "failure", "cancelled"),
                         required=True, help="actual workflow judge-step outcome")
     args = parser.parse_args()
     config = json.loads((ROOT / "benchmark.json").read_text())
     receipt = publish(Store(args.state, args.source, config), args.submission_id,
                       args.run_dir, args.tier,
-                      judge_succeeded=args.judge_outcome == "success")
+                      judge_succeeded=args.judge_outcome == "success",
+                      attempt=args.attempt)
     print("judge failed" if receipt is None else f"published {receipt['tier']} receipt")
 
 
