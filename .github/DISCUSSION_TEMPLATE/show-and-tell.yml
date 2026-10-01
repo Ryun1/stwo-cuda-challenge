@@ -1,0 +1,39 @@
+title: "[Result] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Report public measurements and reproducible proof checks. A local measurement is useful research, but only a signed H200 rank receipt is a leaderboard result. Do not post private case IDs, API keys, or proof blobs.
+  - type: input
+    id: source
+    attributes:
+      label: Source commit or submission ID
+      description: Give the immutable public source commit or challenge submission ID.
+    validations:
+      required: true
+  - type: input
+    id: receipt
+    attributes:
+      label: Public receipt link
+      description: Optional for local work; include a signed receipt link for ranked claims.
+  - type: textarea
+    id: measurements
+    attributes:
+      label: Before and after measurements
+      description: Include public case IDs, adapted-input-to-publication time, peak device bytes, hardware, and number of runs.
+    validations:
+      required: true
+  - type: textarea
+    id: proof_checks
+    attributes:
+      label: Correctness and security checks
+      description: State which Rust verifier, root digest, and canonical security checks passed.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction and tradeoffs
+      description: Include commands, profiler evidence, regressions, and cases that did not improve.
+    validations:
+      required: true

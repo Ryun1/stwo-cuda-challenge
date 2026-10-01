@@ -1,0 +1,39 @@
+title: "[Idea] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Share one falsifiable CUDA optimization hypothesis. See spec/WORKLOADS.md and spec/SCORING.md. Do not post API keys, private fixtures, or proof blobs.
+  - type: dropdown
+    id: subsystem
+    attributes:
+      label: Affected path
+      options:
+        - PIE proving
+        - Cairo proof wrap
+        - Recursive fold
+        - Full pipeline
+        - Shared CUDA backend
+    validations:
+      required: true
+  - type: textarea
+    id: bottleneck
+    attributes:
+      label: Observed bottleneck
+      description: Include a public case ID, phase timing, allocation, or profiler evidence where available.
+    validations:
+      required: true
+  - type: textarea
+    id: mechanism
+    attributes:
+      label: Proposed change and prediction
+      description: Explain the mechanism and predict its effect on end-to-end time and peak device memory.
+    validations:
+      required: true
+  - type: textarea
+    id: falsification
+    attributes:
+      label: How to test it
+      description: Name the smallest public case that could disprove the idea and any correctness risk.
+    validations:
+      required: true

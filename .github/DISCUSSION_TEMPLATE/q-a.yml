@@ -1,0 +1,39 @@
+title: "[Help] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Ask a setup or validation question. Share commands and error excerpts, but remove credentials, private fixture paths, and proof blobs first.
+  - type: dropdown
+    id: phase
+    attributes:
+      label: Where are you stuck?
+      options:
+        - Setup and pinned source
+        - CUDA build
+        - Fixture or proof verification
+        - H200 smoke or qualification
+        - Submission and receipt
+        - Scoring or contract
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, Zig/CUDA versions, and GPU model if relevant.
+    validations:
+      required: true
+  - type: textarea
+    id: command
+    attributes:
+      label: Command and expected result
+    validations:
+      required: true
+  - type: textarea
+    id: observed
+    attributes:
+      label: Observed result
+      description: Include a concise error excerpt and what you have already checked.
+    validations:
+      required: true
