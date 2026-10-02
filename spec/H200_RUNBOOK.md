@@ -6,6 +6,16 @@ submission until the live activation gates in [`ACTIVATION.md`](ACTIVATION.md)
 are satisfied. A single H200 is reserved for one run at a time; all CPU builds,
 fixture transfers, and hash checks happen before its timed proof work.
 
+On a restricted GPU pod without Docker and mount privileges, run
+`python3 scripts/qualify_direct_h200.py --out /external/direct-runs` after
+`./setup.sh --build` to check every public CUDA proof and recursive root against
+its pinned digest and independent Cairo verifiers. Each case writes elapsed
+time, 10 ms sampled peak device memory, and its backend report. This is
+**direct, unsandboxed diagnostic evidence only**: it does not exercise the
+trusted judge's output quota, network isolation, Docker image, signed receipt,
+or paired A/B scoring. Keep generated proofs and logs outside Git and do not
+use these numbers as ranked scores. Use `--case-id ID` to narrow a smoke run.
+
 ## Prepare the host once
 
 1. Use one exclusive H200 SXM with the device capacity in `benchmark.json`.
