@@ -1,5 +1,5 @@
 diff --git a/src/integrations/cairo_cuda/canonical_geometry.zig b/src/integrations/cairo_cuda/canonical_geometry.zig
-index f1f5eddd..0fab4ebe 100644
+index f1f5eddd..9a3de202 100644
 --- a/src/integrations/cairo_cuda/canonical_geometry.zig
 +++ b/src/integrations/cairo_cuda/canonical_geometry.zig
 @@ -60,11 +60,10 @@ pub fn resolve(
@@ -78,7 +78,7 @@ index f1f5eddd..0fab4ebe 100644
 +            input,
 +            cairo.witness.execution_tables.MEMORY_VALUE_TABLE,
 +            encoded.raw,
-+            index,
++            @intCast(index),
 +        );
 +        if (limb != 0) return error.InvalidInstruction;
 +    }

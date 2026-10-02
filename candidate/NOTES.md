@@ -146,22 +146,35 @@ Source commit `b2873365dc28ed4bc4b27de10e01ea0beeef7c93`.
 - Public API surface used by the mirror (`EncodedMemoryValueId.raw`, `.isEmpty()`,
   `.index()`, `execution_tables.limb`, `MEMORY_VALUE_TABLE`, `BIG_LIMB_COUNT`) is
   all `pub`, confirmed by reading the definitions.
+- **Focused test — run by a PR reviewer, not by me.** On a clean `b2873365`
+  checkout with the patch applied, under Zig 0.15.2:
+  `zig build --build-file src/integrations/cairo_cuda/build.zig test
+  -Doptimize=ReleaseFast '-Dtest-filter=canonical CUDA geometry matches
+  independent Rust checkpoints'` → **15/15 tests passed**; the allowed-path
+  policy and clean-pinned-source apply check also passed. This is exactly the
+  gate I asked for: it drives `resolve` on `all_opcodes` and `all_builtins` and
+  checks `padded_rows` against
+  `vectors/cairo/official/*.base_trace_checkpoint.json`, so a wrong distinct
+  count would have failed it. It did not — the count is right.
+- **Correction — the previously submitted head did not compile.** The reviewer
+  reported that `canonical_geometry.zig:215` passed the `usize` loop variable
+  `index` to `execution_tables.limb`, whose `limb_index` parameter is `u32`.
+  The peer type of `packed_limbs..BIG_LIMB_COUNT` does not resolve to `u32` as
+  I had assumed. Fixed with `@intCast(index)`, which is the form the reviewer
+  validated in isolation and the one now captured. The cast is safe: the range
+  is 8..28, always in range. That earlier head is superseded, is not queued for
+  judging, and must not be recorded as a measured improvement.
 
 **Not run — stated plainly, no result implied:**
 
 - `python3 challenge.py setup --build` and
   `python3 challenge.py benchmark --tier smoke --track balanced` — no H200 host
   available to me. **No smoke, qualify or rank run was performed.**
-- The package's own Rust-oracle test, `canonical CUDA geometry matches
-  independent Rust checkpoints` (in this same file, which checks `padded_rows`
-  against `vectors/cairo/official/*.base_trace_checkpoint.json`). **It should be
-  run before this patch is trusted** — it is the natural regression gate, since a
-  wrong distinct count would change `padded_rows` and fail against the oracle.
 - Proof verification (pinned `verify_cairo`), proof SHA-256 comparison, root and
   packed-tree digest comparison, whole-device NVML peak sampling. **Unrun.**
 - Recursion and pipeline cases: untouched by this patch, but also **unrun**.
 
-I could not compile the project locally at all, and that is a property of this
+I could not compile the project on this machine, which is a property of the
 machine rather than of the patch. The repository needs a Zig with
 `Step.Compile.addCSourceFile` (≤ 0.15). Zig 0.16 fails in the build system:
 
@@ -173,15 +186,23 @@ src/backends/cuda/build.zig:21:10: error: no field or member function named
 I reproduced that **identical** failure on the pristine `b2873365` baseline
 worktree, so it is a pre-existing toolchain mismatch. Zig 0.15.1 was also tried
 and cannot link its own runner on macOS 26 (`undefined symbol: _abort`,
-`_clock_gettime`, … from `libSystem`). Hence no local compile or test evidence is
-claimed, only syntax-level checking.
+`_clock_gettime`, … from `libSystem`).
+
+That limitation is precisely why the first submission shipped a type error. I
+had no way to compile my own edit, and `zig ast-check` only parses — it does not
+resolve `usize` against `u32` across a module boundary. The reviewer's compile
+caught it. My own checks were `zig ast-check` and `git apply --check`; neither
+can stand in for a compile, and the "Done" list above should not have implied
+otherwise.
 
 ## Regressions
 
-None observed, and none could have been measured. The change is output-neutral
-by construction (§ mechanism: same integer, same error set, same iteration
-order) and touches no security setting, fixture, verifier, judge or timer. The
-one behavioural difference to watch is host RSS: the bitmap is
+The change is output-neutral by construction (§ mechanism: same integer, same
+error set, same iteration order) and touches no security setting, fixture,
+verifier, judge or timer. The pinned Rust-oracle geometry test now passes 15/15
+with the patch, which is the concrete evidence that `padded_rows` — and so the
+arena plan — is unchanged. Device memory is untouched (no new device
+allocation). The one behavioural difference to watch is host RSS: the bitmap is
 `address_count / 8` bytes, bounded above by 1/32 of the `address_to_id` table
 that the input already holds, so it cannot dominate the capture.
 
