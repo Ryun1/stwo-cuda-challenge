@@ -7,11 +7,12 @@ import json
 from pathlib import Path
 import shutil
 import subprocess
-
-from harness.kernel_closure import verify as verify_kernel_closure
+import sys
 
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+from harness.kernel_closure import verify as verify_kernel_closure
 PREPROCESSED_SHA256 = "4d4fda06dfa3bca19554510a158f6c50abad06a74d29c17885ed4cbb88ada34d"
 
 
