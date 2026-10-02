@@ -161,9 +161,14 @@ def main() -> None:
     registry_verifier = ROOT / ".cache/rust-registry/release/verify_cairo_cuda_json"
     preprocessed = ROOT / ".cache/preprocessed-canonical.bin"
     artifacts = ROOT / ".cache/cuda-artifacts"
-    for asset in (verifier, registry_verifier, preprocessed,
-                  source / "zig-out/bin/stwo-cairo-cuda",
-                  source / "zig-out/bin/stwo-circuit-recursion-cuda"):
+    required = [preprocessed]
+    if any(case["family"] == "pie" for case in cases):
+        required.extend((verifier, source / "zig-out/bin/stwo-cairo-cuda"))
+    if any(case["family"] == "pipeline" for case in cases):
+        required.append(registry_verifier)
+    if any(case["family"] in ("recursion", "pipeline") for case in cases):
+        required.append(source / "zig-out/bin/stwo-circuit-recursion-cuda")
+    for asset in required:
         if not asset.is_file():
             parser.error(f"required asset missing: {asset}")
     out.mkdir(parents=True, exist_ok=True)
