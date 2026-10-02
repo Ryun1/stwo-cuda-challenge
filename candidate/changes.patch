@@ -1,0 +1,24 @@
+diff --git a/src/products/cairo_cuda/app.zig b/src/products/cairo_cuda/app.zig
+index 07a15d39..a5b0add2 100644
+--- a/src/products/cairo_cuda/app.zig
++++ b/src/products/cairo_cuda/app.zig
+@@ -154,8 +154,17 @@ fn runItems(allocator: std.mem.Allocator, items: []const BatchItem, mode: Mode,
+     const runtime_init_ns = if (external_runtime == null) startup.read() else 0;
+     const image_setting = std.process.getEnvVarOwned(allocator, "STWO_CAIRO_CUDA_STATIC_IMAGE") catch null;
+     defer if (image_setting) |value| allocator.free(value);
+-    const use_device_image = external_runtime != null and (items.len > 1 or persistent != null) and
+-        image_setting != null and std.mem.eql(u8, image_setting.?, "1");
++    // The preprocessed coefficients are a fixed asset. A resident session that
++    // proves more than one Cairo PIE reloads all of it from the host for every
++    // proof, because the Cairo arena is evicted around each wrap and that
++    // invalidates the retained receipt. The device image holds those
++    // coefficients in a persistent allocation that survives the eviction, so a
++    // later proof restores them device-to-device instead. Default it on for
++    // exactly that configuration, where a later proof can actually reuse it;
++    // STWO_CAIRO_CUDA_STATIC_IMAGE=0 still opts out.
++    const image_reusable = external_runtime != null and (items.len > 1 or persistent != null);
++    const image_disabled = image_setting != null and std.mem.eql(u8, image_setting.?, "0");
++    const use_device_image = image_reusable and !image_disabled;
+     var local_image: ?DeviceImage = null;
+     defer if (local_image) |*image| image.deinit(runtime) catch {};
+     const image_slot = if (persistent) |session| &session.device_image else &local_image;
