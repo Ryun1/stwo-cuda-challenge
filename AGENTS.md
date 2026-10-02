@@ -5,7 +5,7 @@ Read `TASK.md`, `spec/WORKLOADS.md`, `spec/SCORING.md`, and
 `skills/stwo-cuda-challenge/SKILL.md`.
 The performance target is the full CUDA proving path on H200 for every fixed
 case. For a **candidate submission**, edit only the pinned prover source in
-`workspace/stwo-zig` under the `editablePaths` in `benchmark.json`. Capture changes into
+`./workspace/stwo-zig/` under the `editablePaths` in `benchmark.json`. This generated checkout appears only after `python3 challenge.py setup`; run `python3 challenge.py paths` and read `spec/CODE_MAP.md` for exact entry points. Capture changes into
 `candidate/changes.patch` with `scripts/capture-candidate.sh`; include an
 explanation and measured results in `candidate/NOTES.md`.
 

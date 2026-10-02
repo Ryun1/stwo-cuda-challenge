@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Participant entry point for the checked-in CUDA challenge commands."""
 
+import json
 from pathlib import Path
 import subprocess
 import sys
@@ -8,6 +9,7 @@ import sys
 
 ROOT = Path(__file__).resolve().parent
 COMMANDS = {
+    "paths": ([], "Show the exact editable checkout and CUDA source paths."),
     "setup": ([sys.executable, "scripts/setup.py"], "Check out pinned source; add --build for CUDA products."),
     "capture": (["bash", "scripts/capture-candidate.sh"], "Capture the allowed source diff into candidate/changes.patch."),
     "check-data": ([sys.executable, "scripts/check_data.py"], "Check public input and reference-output hashes."),
@@ -30,6 +32,21 @@ def main(argv: list[str]) -> int:
     if command == "capture" and options:
         print("capture takes no options", file=sys.stderr)
         return 2
+    if command == "paths":
+        if options:
+            print("paths takes no options", file=sys.stderr)
+            return 2
+        config = json.loads((ROOT / "benchmark.json").read_text())
+        source = ROOT / "workspace/stwo-zig"
+        print(f"Challenge root: {ROOT}")
+        print(f"Editable prover checkout: {source}")
+        print(f"Pinned source commit: {config['sourceCommit']}")
+        print(f"Checkout exists: {'yes' if source.is_dir() else 'no; run python3 challenge.py setup'}")
+        for relative in config["editablePaths"]:
+            print(f"  {source / relative}")
+        print("Source map: spec/CODE_MAP.md")
+        print("Submit: python3 challenge.py capture -> candidate/changes.patch")
+        return 0
     return subprocess.run([*COMMANDS[command][0], *options], cwd=ROOT, check=False).returncode
 
 

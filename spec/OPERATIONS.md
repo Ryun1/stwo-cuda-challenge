@@ -122,12 +122,12 @@ projection, separate from the judge state and secrets:
    digest and PR URL on the displayed record for audit. Refresh/rebuild the
    site when a PR, Discussion, or signed receipt changes; the current imported
    JSON approach supports scheduled or webhook-triggered rebuilds.
-4. Align the website's authored contract with the active challenge epoch
-   before launch. At present its copy describes a draft `h200-proof-v1`
-   proof-stage score, while the challenge actually implements `h200-v1`
-   whole-command scoring. Publishing those as the same leaderboard would be
-   incorrect. Either present the draft in a clearly separate research area or
-   change the site to display the active v1 contract and its measured clocks.
+4. Keep the website on the active `h200-v1` contract: adapted-input-to-publication
+   time and independently sampled whole-device peak bytes. The site displays
+   two direct H200 runs only as unranked research context. A live leaderboard
+   still requires the trusted signed-receipt feed and a fresh paired baseline
+   for each ranked submission; do not derive judged absolute values from the
+   unpaired direct-run context.
 
 GitHub provides review and social metadata; the judge provides proof validity
 and measured performance. The website joins them by immutable commit and

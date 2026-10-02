@@ -9,7 +9,7 @@ security settings, independent Cairo verification, and canonical root checks.
 
 The prover's CUDA implementation lives in upstream `stwo-zig`. This challenge
 pins one commit from its `main` branch and checks it out under
-`workspace/stwo-zig`; participants submit changes to the allowed CUDA paths as
+`workspace/stwo-zig` after `python3 challenge.py setup`. Participants submit changes to the allowed CUDA paths as
 `candidate/changes.patch` in their challenge-repository PRs. The judge applies
 that patch to a clean pinned checkout before building and measuring it. This
 keeps one production source tree and gives maintainers a source diff to apply
@@ -21,7 +21,10 @@ reference proofs are under
 [`data/`](data/README.md), with the scored fixture contract in
 [`fixtures/public-v1.json`](fixtures/public-v1.json).
 
-Start with [TASK.md](TASK.md). The fixed contract is [benchmark.json](benchmark.json),
+Start with [TASK.md](TASK.md) and the [exact CUDA source map](spec/CODE_MAP.md).
+Run `python3 challenge.py paths` to see the local checkout path; there is no
+`/workspaces/stwo-zig` directory, and `workspace/` is ignored in Git. A fresh
+clone therefore has no prover source until setup runs. The fixed contract is [benchmark.json](benchmark.json),
 the workload and proof obligations are in [spec/WORKLOADS.md](spec/WORKLOADS.md),
 and the scoring and tradeoffs are in [spec/SCORING.md](spec/SCORING.md).
 The [submission guide](spec/SUBMISSIONS.md) lists editable CUDA files,
@@ -60,8 +63,9 @@ timer, a source-only static estimate, or an unverified proof.
    `STWO_SANDBOX_IMAGE` to its local SHA-256 image ID. `./setup.sh` creates separate
    pinned baseline and editable source checkouts; it does not download private
    PIEs.
-2. Work in `workspace/stwo-zig` under the allowed CUDA source paths. Run
-   relevant small local tests before a GPU trial.
+2. Run `python3 challenge.py paths`, then work in `workspace/stwo-zig` under
+   the [allowed CUDA source paths](spec/CODE_MAP.md). Run relevant small local
+   tests before a GPU trial.
 3. Capture the source diff with `./scripts/capture-candidate.sh`. Optionally
    attach a prebuilt binary digest for the fast screening tier. The binary is
    never a substitute for source in a ranked submission.
@@ -80,6 +84,7 @@ On a prepared H200 host, the local loop is:
 git lfs pull
 python3 challenge.py check-data
 python3 challenge.py setup
+python3 challenge.py paths
 # Edit allowed CUDA source paths in workspace/stwo-zig.
 python3 challenge.py capture
 python3 challenge.py setup --build

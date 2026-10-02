@@ -23,7 +23,7 @@ and PRs. [`DISCUSSIONS.md`](DISCUSSIONS.md) describes the forms and evidence.
 
 1. Fork this challenge repository. Run `git lfs pull`,
    `python3 challenge.py check-data`, and `python3 challenge.py setup` from its
-   root. Setup creates the pinned `workspace/stwo-zig` checkout.
+   root. Setup creates the pinned `./workspace/stwo-zig/` checkout (singular `workspace`; ignored in Git). Run `python3 challenge.py paths` to print its absolute location. [CODE_MAP.md](CODE_MAP.md) names specific CUDA entry points.
 2. Edit production prover code **only** under these `benchmark.json`
    `editablePaths` in `workspace/stwo-zig`:
 
@@ -46,9 +46,8 @@ and PRs. [`DISCUSSIONS.md`](DISCUSSIONS.md) describes the forms and evidence.
    use `--tier rank` for paired measurements. Record the exact case, hardware,
    samples, end-to-end time, peak device bytes, proof checks, and regressions.
    Local measurements are research evidence, not leaderboard scores.
-4. If you add a new allowed CUDA source file, first stage it in the pinned
-   checkout with `git -C workspace/stwo-zig add -N PATH` so Git includes it in
-   the diff. Run `python3 challenge.py capture`. It writes
+4. Run `python3 challenge.py capture` after editing. It automatically includes
+   new files under the allowed CUDA paths and writes
    `candidate/changes.patch` from the allowed source diff and checks that it
    applies to the pinned commit. Fill in `candidate/NOTES.md`.
 

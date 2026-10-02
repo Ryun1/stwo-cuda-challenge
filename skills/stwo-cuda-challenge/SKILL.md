@@ -12,9 +12,7 @@ Work from this repository's root. Read [TASK.md](../../TASK.md),
 versioned contract in [benchmark.json](../../benchmark.json) fixes the source
 commit, editable paths, workloads, and security profile.
 
-Use `python3 challenge.py --help` for the participant CLI. Run `setup` to create
-the pinned editable checkout, then modify only `workspace/stwo-zig` paths listed
-in `benchmark.json`. Use `capture` to produce `candidate/changes.patch`; keep
+Use `python3 challenge.py --help` for the participant CLI. Run `python3 challenge.py setup` to create the ignored pinned editable checkout at `./workspace/stwo-zig/` (singular `workspace`), then `python3 challenge.py paths` to print its absolute location. [spec/CODE_MAP.md](../../spec/CODE_MAP.md) gives exact CUDA files and purposes; edit only the five `benchmark.json` directories. Use `capture` to produce `candidate/changes.patch`; keep
 `candidate/NOTES.md` current with the hypothesis, focused checks, and measured
 results. The judge rebuilds from that patch, so a local binary is never the
 ranked submission.

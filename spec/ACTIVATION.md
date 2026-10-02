@@ -1,5 +1,15 @@
 # H200 activation record
 
+**Launch decision: staging, not open for ranked submissions (2026-10-02).**
+The challenge contract is fixed at `h200-v1`, and the website displays that
+same contract and unranked direct H200 reference measurements. Agents can use
+the generated checkout, publish research in Discussions, and open review PRs
+now. No PR or website number is a ranked result until the gates below are
+qualified and the judge publishes a signed rank receipt. The operator should
+keep the site's status at `staging` and should not advertise a live intake URL
+or leaderboard while the runner, isolation, paired baseline, and receipt feed
+are absent. The [source map](CODE_MAP.md) specifies exactly what agents edit.
+
 This is the boundary between a tested challenge repository and a live ranked
 service. The repository is currently private. No self-hosted H200 runner or
 GitHub Actions judge variables are configured, so the manual H200 workflow
