@@ -6,6 +6,12 @@ verifier; every reported CUDA trial used the canonical 70-query, 26-bit PoW
 profile with zero CPU fallbacks. The complete per-round measurements, binary
 hashes, and PIE phase timings are in
 [`h200-direct-2026-10-02.json`](h200-direct-2026-10-02.json).
+The pinned ReleaseFast baseline has a
+[`build attestation`](h200-direct-2026-10-02-baseline-attestation.json), and a
+separate clean zero-patch candidate worktree has its own
+[`build attestation`](h200-direct-2026-10-02-candidate-empty-attestation.json).
+Both worktrees were at the pinned source commit. The direct proof runs used the
+baseline binaries; the candidate build has not been scored in a paired A/B run.
 
 | Public case | Median process time, 2 runs | Peak H200 memory | Median PIE ingress | Median PIE prove/decode |
 | --- | ---: | ---: | ---: | ---: |

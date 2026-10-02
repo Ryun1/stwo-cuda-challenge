@@ -1,0 +1,13 @@
+{
+  "schema": "stwo-cuda-trusted-build-v1",
+  "contract_epoch": "h200-v1",
+  "source_commit": "b2873365dc28ed4bc4b27de10e01ea0beeef7c93",
+  "patch_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "products": {
+    "zig-out/bin/stwo-cairo-cuda": "69343e7a4042c01f6fcef1c5dfd40d8e73dec91ca493bdef07fd6a2161ad22d6",
+    "zig-out/bin/stwo-circuit-recursion-cuda": "e785b55800056953333163b16da63b9d26dc2356499eca506390d725ac9afab5"
+  },
+  "build": "ReleaseFast",
+  "zig_version": "0.15.2",
+  "nvcc_version": "Build cuda_12.4.r12.4/compiler.34097967_0"
+}
