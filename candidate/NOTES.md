@@ -124,21 +124,47 @@ Source commit `b2873365dc28ed4bc4b27de10e01ea0beeef7c93`.
 **Performed by me:** `challenge.py check-data` (10 tasks, 60 files);
 `challenge.py setup` / `paths`; `challenge.py capture` (CUDA product closure
 verified; 147 active and 0 staged ABI symbols; derivative manifests match);
-`git apply --check` against the pristine `b2873365` worktree — applies cleanly;
-`zig ast-check src/products/cairo_cuda/app.zig`; `git status --porcelain`
-confirms one modified file.
+- `zig ast-check src/products/cairo_cuda/app.zig`;
+- **hand-built `zig build-exe` module graph (14 modules) — exit 0**, the check
+  detailed below;
+- `git status --porcelain` confirms one modified file.
 
 **Not performed — explicitly unrun:** `setup --build`; `benchmark --tier smoke
 --track balanced`; `--tier qualify`; `--tier rank`; the preprocessed profile
 above; pinned `verify_cairo`; proof SHA-256 comparison; root and packed-tree
 digest comparison; NVML peak sampling.
 
-**No compiler run exists for this patch.** The repo needs Zig with
-`Step.Compile.addCSourceFile` (≤ 0.15). Zig 0.16 fails in the build system and I
-reproduced that identical failure on the pristine baseline; Zig 0.15.1 and 0.15.2
-both fail to link the build runner on this macOS release
-(`undefined symbol: _abort`, `_malloc_size`, … from `libSystem`). So this change
-is **syntax-checked only**. A PR reviewer with a working toolchain should run:
+**Type-checked locally, but not compiled by the repo's own build.** No Zig
+install both links and matches this repo on this machine. 0.15.1/0.15.2 — the
+versions `build.zig` supports — cannot link *any* executable on this macOS
+release: reproduced on a trivial hello-world, and unchanged by
+`ZIG_SYSTEM_LINKER_HACK=1`, `-fuse-lld=false` and `-lc`. 0.16.0 links fine, but
+the pinned source is pre-0.16 std (`std.process.argsAlloc`,
+`std.process.getEnvVarOwned`, `std.fs.File` and `std.fs.selfExePathAlloc` have
+all moved), and the repo's `build.zig` uses APIs 0.16 removed.
+
+So I bypassed `zig build` and drove `zig build-exe` with the module graph by
+hand — 14 modules, with `stwo_cairo_cuda` resolving to `src/cairo_cuda.zig`, the
+aggregate that re-exports `backend` / `frontend` / `integration` / `executor`.
+Against that graph the three expressions this change introduces **type-check
+clean (exit 0)** with the file's real `NativeRuntime`, `BatchSession` and
+`BatchItem` types:
+
+```zig
+const image_reusable = external_runtime != null and (items.len > 1 or persistent != null);
+const image_disabled = image_setting != null and std.mem.eql(u8, image_setting.?, "0");
+const use_device_image = image_reusable and !image_disabled;
+```
+
+**The harness is itself validated.** Run against the sibling candidate #3 with
+the `@intCast` removed, it reproduces the exact defect a reviewer reported
+there — `canonical_geometry.zig:215: error: expected type 'u32', found 'usize'`
+— and returns 0 with the cast restored. So it detects the class of error that
+#3 actually shipped, which is the reason I trust it here.
+
+What it does **not** cover: it skips `main()` (whose pre-0.16 std usage this Zig
+cannot compile) and it cannot run tests. A reviewer with a working toolchain
+should still run:
 
 ```
 zig build --build-file src/integrations/cairo_cuda/build.zig test -Doptimize=ReleaseFast
