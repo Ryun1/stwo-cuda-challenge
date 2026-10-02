@@ -1,0 +1,21 @@
+case_id	family	round	proof_stage_s	proof_stage_scope	cairo_leaf_proof_sum_s	ingress_s	fold_stage_s	process_s	peak_device_bytes	qualification
+pie:15582797_15582797	pie	1	1.280138910	cairo_execute_finish		5.994626804		7.826957472	90498269184	direct-unranked-unsandboxed
+pie:15603744_15603744	pie	1	1.223920801	cairo_execute_finish		5.445094337		7.176216993	89726517248	direct-unranked-unsandboxed
+pie:15581148_15581148	pie	1	1.172691664	cairo_execute_finish		4.991737497		6.676260573	84559134720	direct-unranked-unsandboxed
+pie:15590913_15590913	pie	1	1.546578425	cairo_execute_finish		5.452411357		7.577968249	105228664832	direct-unranked-unsandboxed
+pie:15588777_15588780	pie	1	1.953355602	cairo_execute_finish		7.332827748		9.931459046	134085476352	direct-unranked-unsandboxed
+pie:15591789_15591789	pie	1	1.675311905	cairo_execute_finish		6.078018774		8.378909983	116268072960	direct-unranked-unsandboxed
+recursion:two-leaf-wrap-fold	recursion	1		unavailable			2.179319628	2.720437713	29418717184	direct-unranked-unsandboxed
+recursion:eight-distinct-pie-fold	recursion	1		unavailable			7.429668985	7.977467536	29418717184	direct-unranked-unsandboxed
+pipeline:two-leaf-root	pipeline	1		unavailable	0.900494583			18.141932649	69461737472	direct-unranked-unsandboxed
+pipeline:two-leaf-batch-integrated	pipeline	1		unavailable	0.772968112			13.687262351	41307471872	direct-unranked-unsandboxed
+pie:15582797_15582797	pie	2	1.284979929	cairo_execute_finish		5.608254059		7.428439478	90498269184	direct-unranked-unsandboxed
+pie:15603744_15603744	pie	2	1.223863539	cairo_execute_finish		6.077381345		7.828285832	89726517248	direct-unranked-unsandboxed
+pie:15581148_15581148	pie	2	1.172876374	cairo_execute_finish		5.459614742		7.127396825	84559134720	direct-unranked-unsandboxed
+pie:15590913_15590913	pie	2	1.546762058	cairo_execute_finish		5.897380788		7.979829132	105228664832	direct-unranked-unsandboxed
+pie:15588777_15588780	pie	2	1.949694968	cairo_execute_finish		7.045660138		9.630661489	134085476352	direct-unranked-unsandboxed
+pie:15591789_15591789	pie	2	1.674796166	cairo_execute_finish		6.525492480		8.779334458	116268072960	direct-unranked-unsandboxed
+recursion:two-leaf-wrap-fold	recursion	2		unavailable			2.518067414	3.070141224	29418717184	direct-unranked-unsandboxed
+recursion:eight-distinct-pie-fold	recursion	2		unavailable			7.273978161	7.831549246	29418717184	direct-unranked-unsandboxed
+pipeline:two-leaf-root	pipeline	2		unavailable	0.968369490			18.742681069	69461737472	direct-unranked-unsandboxed
+pipeline:two-leaf-batch-integrated	pipeline	2		unavailable	0.774472745			14.386436795	41307471872	direct-unranked-unsandboxed

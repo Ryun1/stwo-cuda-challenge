@@ -1,0 +1,11 @@
+case_id	family	round	proof_stage_s	proof_stage_scope	cairo_leaf_proof_sum_s	ingress_s	fold_stage_s	process_s	peak_device_bytes	qualification
+pie:15582797_15582797	pie	median	1.282559420	cairo_execute_finish		5.801440431		7.627698475	90498269184	direct-unranked-unsandboxed
+pie:15603744_15603744	pie	median	1.223892170	cairo_execute_finish		5.761237841		7.502251412	89726517248	direct-unranked-unsandboxed
+pie:15581148_15581148	pie	median	1.172784019	cairo_execute_finish		5.225676120		6.901828699	84559134720	direct-unranked-unsandboxed
+pie:15590913_15590913	pie	median	1.546670242	cairo_execute_finish		5.674896073		7.778898691	105228664832	direct-unranked-unsandboxed
+pie:15588777_15588780	pie	median	1.951525285	cairo_execute_finish		7.189243943		9.781060267	134085476352	direct-unranked-unsandboxed
+pie:15591789_15591789	pie	median	1.675054036	cairo_execute_finish		6.301755627		8.579122221	116268072960	direct-unranked-unsandboxed
+recursion:two-leaf-wrap-fold	recursion	median		unavailable			2.348693521	2.895289468	29418717184	direct-unranked-unsandboxed
+recursion:eight-distinct-pie-fold	recursion	median		unavailable			7.351823573	7.904508391	29418717184	direct-unranked-unsandboxed
+pipeline:two-leaf-root	pipeline	median		unavailable	0.934432036			18.442306859	69461737472	direct-unranked-unsandboxed
+pipeline:two-leaf-batch-integrated	pipeline	median		unavailable	0.773720429			14.036849573	41307471872	direct-unranked-unsandboxed
