@@ -7,6 +7,14 @@ wraps Cairo proofs in circuit verifier proofs, and folds consecutive leaves to
 one recursive root. The judge owns the inputs, clock, memory measurement,
 security settings, independent Cairo verification, and canonical root checks.
 
+**Launch scope:** the intended research target is GPU proving time. The
+implemented `h200-v1` judge currently scores the full adapted-input-to-proof
+command, including ingress and publication, and is **not live**. Six Cairo PIE
+proof-stage timings are retained (1.17–1.95 s); wrap/fold proof-only timers are
+still missing. The [activation decision](spec/ACTIVATION.md) requires a new
+proof-stage scoring epoch and fresh baselines before a proving-time leaderboard
+can open. The direct 6.90–9.78 s Cairo figures are full-command diagnostics.
+
 The prover's CUDA implementation lives in upstream `stwo-zig`. This challenge
 pins one commit from its `main` branch and checks it out under
 `workspace/stwo-zig` after `python3 challenge.py setup`. Participants submit changes to the allowed CUDA paths as

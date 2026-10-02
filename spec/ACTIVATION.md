@@ -1,8 +1,13 @@
 # H200 activation record
 
 **Launch decision: staging, not open for ranked submissions (2026-10-02).**
-The challenge contract is fixed at `h200-v1`, and the website displays that
-same contract and unranked direct H200 reference measurements. Agents can use
+The implemented `h200-v1` contract scores full-command time, while the intended
+research target is GPU proving time. The website now foregrounds the six
+retained Cairo proof-stage measurements and labels full-command measurements
+separately. A proof-only competition requires a **new reviewed epoch** with
+wrap, fold, and pipeline proof-stage timers, matching memory scope, and fresh
+paired baselines. Do not launch the full-command v1 ranking as though it were
+the proving-time challenge. Agents can use
 the generated checkout, publish research in Discussions, and open review PRs
 now. No PR or website number is a ranked result until the gates below are
 qualified and the judge publishes a signed rank receipt. The operator should
@@ -23,6 +28,7 @@ did not change these live-service gates.
 
 | Gate | Current evidence | Required activation evidence |
 | --- | --- | --- |
+| Proof-stage scope | Six Cairo PIE proof stages retained at 1.17–1.95 s. Their 6.90–9.78 s full-command times include ingress. Wrap/fold proof-only timers are not retained. | Specify and implement a new proof-stage scoring epoch across all ten cases, add trustworthy wrap/fold/pipeline timers and memory interval, re-run baselines, and align judge and website before launch. |
 | Contract and data | `check_data.py` verified all 60 public files after transfer to the healthy H200 pod; contract CI also passes. | Repeat the full hash check on the eventual trusted runner. |
 | Independent verifiers | Both pinned Rust verifiers were built on Linux and accepted all relevant Cairo proofs in two direct H200 rounds; executable hashes are recorded in [`data/reports/`](../data/reports/README.md). | Build both verifiers from the pinned baseline on the trusted runner and run them inside the judge. |
 | Public PIE output files | All six PIEs passed two direct H200 rounds with exact proof hashes and pinned Rust verification; see [`data/reports/`](../data/reports/README.md). | Repeat inside the trusted H200 judge to qualify isolation and ranked timing. |

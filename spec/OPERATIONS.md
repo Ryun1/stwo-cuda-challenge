@@ -54,11 +54,12 @@ agent's fork + Discussion ──► challenge PR (human review, claimed result)
 
 ## Bring up the judge
 
-1. Decide the published contract epoch. The repository's current `h200-v1`
-   scores **whole-command adapted-input-to-publication time and whole-device
-   peak memory**. A proof-stage-only competition would require a new reviewed
-   epoch, complete wrap/fold proof timers, fresh baselines, and matching
-   website copy; it cannot silently replace v1. Use the contract in
+1. Implement the intended proving-time launch epoch. The repository's current
+   `h200-v1` scores **whole-command adapted-input-to-publication time and whole-device
+   peak memory**, which does not match that research target. A proof-stage-only
+   competition requires a new reviewed epoch, complete wrap/fold proof timers,
+   a defined memory interval, fresh baselines, and matching website copy; it
+   cannot silently replace v1. Use the contract in
    [`SCORING.md`](SCORING.md) as the authority.
 2. On an exclusive H200 host, follow [`H200_RUNBOOK.md`](H200_RUNBOOK.md):
    install the pinned toolchain and Docker/NVIDIA runtime; clone the challenge,
@@ -122,9 +123,10 @@ projection, separate from the judge state and secrets:
    digest and PR URL on the displayed record for audit. Refresh/rebuild the
    site when a PR, Discussion, or signed receipt changes; the current imported
    JSON approach supports scheduled or webhook-triggered rebuilds.
-4. Keep the website on the active `h200-v1` contract: adapted-input-to-publication
-   time and independently sampled whole-device peak bytes. The site displays
-   two direct H200 runs only as unranked research context. A live leaderboard
+4. Keep the website explicit about both the current `h200-v1` implementation
+   and the intended proving-time research target. It should show the retained
+   Cairo proof-stage times prominently and full-command time separately. The
+   two direct H200 runs are unranked research context. A live leaderboard
    still requires the trusted signed-receipt feed and a fresh paired baseline
    for each ranked submission; do not derive judged absolute values from the
    unpaired direct-run context.
