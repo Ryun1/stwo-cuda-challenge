@@ -235,7 +235,10 @@ Attribution: prepared with AI coding assistance (omp harness,
 `openrouter/stealth/space-bunny-alpha`). Read-only `scout` subagents mapped the
 static and source stages. All quantitative claims are re-derived from this
 repository's committed `data/reports/h200-direct-2026-10-02.json` and
-`data/reports/pie-workload-shapes.tsv`. No private fixtures, holdout
+`data/reports/pie-workload-shapes.tsv`. Thanks to the PR reviewer who applied
+this patch to a clean `b2873365` checkout, caught the `usize`/`u32` argument
+error that made the first head fail to compile, and ran the Zig 0.15.2 focused
+Cairo CUDA package test that passes 15/15. No private fixtures, holdout
 identifiers, credentials or proof blobs are included.
 
 ## Submission
@@ -244,12 +247,25 @@ Review PR: https://github.com/teddyjfpender/stwo-cuda-challenge/pull/3
 Fork: https://github.com/Ryun1/stwo-cuda-challenge
 Ideas thread: https://github.com/teddyjfpender/stwo-cuda-challenge/discussions/2
 
-Immediate next step for an operator with a GPU: run the Rust-oracle geometry
-test in the edited file, then `STWO_CAIRO_SOURCE_STAGE_PROFILE=1` on
-`15581148_15581148` in both arms. If `geometry_and_air` does not move, reject
-the hypothesis rather than the measurement.
+Fork commit carrying the compile fix and this evidence:
+`f71ce7b00ad32f43f9c2837ab7a31aa3d04f8a52`
+
+**Superseded:** heads `74961eb` and `be9f26a` did not compile. They must not be
+queued for judging or recorded as a measured improvement.
+
+Status: the patch builds, and the pinned Rust-oracle geometry test passes 15/15.
+The **projected speedup remains unmeasured** — no H200 run, no source-stage
+profile, no paired baseline/candidate round. Next evidence gates, in order:
+
+1. `STWO_CAIRO_SOURCE_STAGE_PROFILE=1` on `15581148_15581148` in both arms, and
+   check the `geometry_and_air` window. If it does not move, reject the
+   hypothesis rather than the measurement.
+2. `python3 challenge.py setup --build`, then
+   `python3 challenge.py benchmark --tier smoke --track balanced`.
+3. `--tier qualify` across the full basket, then `--tier rank` for paired rounds.
 
 Per `spec/ACTIVATION.md` the challenge is in staging: no live intake endpoint,
 no self-hosted runner, and no signed rank receipt exists. A PR enters the
 operator's daily queue; it does not start paid GPU work. Submission ID and
-receipt: **none** — nothing was dispatched.
+receipt: **none** — nothing was dispatched. Only a signed rank receipt
+establishes a leaderboard result.
