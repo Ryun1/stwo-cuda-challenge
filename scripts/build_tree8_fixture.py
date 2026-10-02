@@ -51,7 +51,7 @@ def main() -> None:
     if any(not path.is_relative_to(fixtures) for path in (downloads, adapted_dir, out)):
         parser.error("fold directories must stay inside the external fixture store")
     if subprocess.check_output(["git", "-C", str(source), "rev-parse", "HEAD"], text=True).strip() != SOURCE_COMMIT:
-        parser.error("source is not pinned to upstream main at PR #204")
+        parser.error("source is not pinned to the benchmark source commit")
     prover = args.prover.resolve() if args.prover else source / "zig-out/bin/stwo-circuit-recursion-cpu"
     if not prover.is_file():
         parser.error("build source with zig build stwo-circuit-recursion-cpu -Doptimize=ReleaseFast -j2")

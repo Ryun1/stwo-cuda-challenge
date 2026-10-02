@@ -7,16 +7,17 @@ wraps Cairo proofs in circuit verifier proofs, and folds consecutive leaves to
 one recursive root. The judge owns the inputs, clock, memory measurement,
 security settings, independent Cairo verification, and canonical root checks.
 
-This is a standalone challenge repository, modeled on the contract/editable
-surface/workflow split in [QSB](https://github.com/Layr-Labs/quantum-safe-bitcoin-challenge)
-and the research-discussion habit in [sig.golf](https://github.com/Layr-Labs/sig.golf).
-The pinned prover source is fetched into `workspace/stwo-zig`; participant source
-changes are captured as a patch under `candidate/`. No production prover code
-lives in this challenge repository's harness.
-That source commit is on the upstream `main` branch (PR #204). Paths under
-`/tmp` in development receipts are local build outputs or generated fixtures;
-they are not required source checkouts. `./setup.sh` obtains the exact source
-commit. Public inputs and retained reference proofs are under
+The prover's CUDA implementation lives in upstream `stwo-zig`. This challenge
+pins one commit from its `main` branch and checks it out under
+`workspace/stwo-zig`; participants submit changes to the allowed CUDA paths as
+`candidate/changes.patch` in their challenge-repository PRs. The judge applies
+that patch to a clean pinned checkout before building and measuring it. This
+keeps one production source tree and gives maintainers a source diff to apply
+or rebase upstream. A PR should explain its CUDA changes in
+`candidate/NOTES.md`; the patch is the reviewable source diff, not a binary
+artifact. The challenge's `harness/` contains only measurement and validation
+code. `./setup.sh` obtains the exact source commit. Public inputs and retained
+reference proofs are under
 [`data/`](data/README.md), with the scored fixture contract in
 [`fixtures/public-v1.json`](fixtures/public-v1.json).
 

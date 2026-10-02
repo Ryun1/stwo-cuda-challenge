@@ -7,9 +7,10 @@ its required input files and exact expected output SHA-256 digests. The three
 rankings (latency, memory, balanced) score the **same** proving tasks; they are
 performance objectives, not separate proof formats.
 The two-pass direct H200 qualification measurements are under
-[`reports/`](reports/README.md). That directory also has separate, sourced
-historical PIE and recursion TSVs for research context; their workloads and
-timing boundaries differ from this challenge's fixed public basket.
+[`reports/`](reports/README.md). That directory also has a sourced H200 CUDA
+PIE milestone series and a workload-shape table. The milestone PIEs differ
+from this challenge's fixed public basket, so their times are not compared
+without matching inputs.
 
 | Operation | Inputs | Expected outputs |
 | --- | --- | --- |

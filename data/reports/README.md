@@ -23,8 +23,11 @@ The [Cairo CUDA milestone TSV](historical-cairo-cuda-milestones.tsv) adds 48
 version-by-PIE rows from the verifier-qualified `stwo-zig/autoresearch` H200
 receipts. It follows the **same four historical SN PIE inputs** through v39,
 v41, v42, v44, v45, and retained Hopper v5–v9, v17, and v18 milestones. These
-four inputs are different from the six public cases below. Each row gives the
-backend-reported proof-stage median, separate ingress/publication/process
+four inputs are different from the six public cases below. Each row now carries
+the source PIE's OS steps, archive size, component count, padded component rows,
+and EC/Pedersen/Poseidon/bitwise/range-check builtin counts from the pinned
+source-coverage record. Each row also gives the backend-reported proof-stage
+median, separate ingress/publication/process
 timings, sample count, maximum sampled device memory, input/proof/binary hashes,
 and the source receipt's relative path and SHA-256. All imported proofs passed
 the official Rust verifier at the canonical 70/26/24 profile with zero CPU
@@ -46,25 +49,40 @@ adaptation, and queueing. The TSV preserves those other available clocks in
 separate columns. The paired v5–v8 rows select the candidate arm and exclude
 the explicitly disqualified v5 timing block.
 
-The [recursion milestone TSV](historical-recursion-milestones.tsv) records
-three independently verified, six-sample-per-arm parent comparisons from
-`autoresearch`. It includes the producer's `proof_ns` stage and whole-process
-medians separately. These are **CPU/Metal on an Apple M5 Max**, using the
-developmental `recursive_q193_v1` profile and one detached two-child parent.
-They are not CUDA `circuit_multiverifier` fold results and must not be joined to
-the H200 challenge scoring series. The largest recorded preparation comparison
-moved Metal parent proof stage from 3.286 to 2.398 seconds and whole process
-from 7.062 to 5.572 seconds; the CPU comparison moved 6.079 to 5.450 seconds
-for proof stage. The direct Merkle-row experiment had a smaller complete-process
-gain, 5.676 to 5.536 seconds. No historical CUDA-recursion proof-stage receipt
-was available in the selected `autoresearch` sources.
+The [workload-shape TSV](pie-workload-shapes.tsv) places those four historical
+PIEs beside the six public PIEs using a **step index**: each step count divided
+by the historical four-PIE median of 14,066,633 steps. The public cases have
+18.8–33.7 million steps, or 1.34–2.39 times that reference. Their median is
+about 1.60 times the historical median. The public table also records block
+count and CPI bytes. Archive bytes for the historical inputs and CPI bytes for
+the public inputs are separate columns because those formats have different
+overheads. For the public CPI files, the exporter reads and hash-checks the
+pinned transport header and reports opcode, memory-table, and **reserved
+builtin segment capacity** counts. These are exact input geometry, but reserved
+capacity is not the number of builtin operations actually executed. The
+historical record supplies executed builtin counts, so the table keeps those
+two kinds of counts in separate columns. The public fixture also labels each
+case's notable builtin mix. The step index models **workload size only**.
+Ten heterogeneous inputs, with public executed builtin and component counts
+unavailable, cannot
+support a defensible cross-cohort proof-time or memory prediction. No historic
+timing is rescaled into a public-case benchmark.
 
-Regenerate both historical TSVs from a clean `stwo-zig` checkout containing
-the cited receipts with `python3 scripts/import_autoresearch_history.py
---source ../stwo-zig`. The importer checks security, independent verification,
-stable input and proof digests across PIE revisions, recursion log hashes,
-sample counts, and source medians. It writes only repository-relative source
-paths; no machine-local paths from old driver logs are copied.
+The public four-block case has 33.7 million steps, 36.9 million memory
+addresses, and 134.1 GB measured peak H200 memory; it is the largest public
+input on all three measures. The one-block cases span 18.8–25.4 million steps
+and 21.1–27.9 million memory addresses. Their measured peaks still range from
+84.6 to 116.3 GB, showing why step count alone is insufficient as a memory
+model. These are descriptive measurements of the fixed basket, not predictions
+for unseen PIEs.
+
+Regenerate the historical TSV from a clean `stwo-zig` checkout containing the
+cited receipts with `python3 scripts/import_autoresearch_history.py --source
+workspace/stwo-zig`, then run `python3 scripts/export_pie_workload_shapes.py`.
+The importer checks security, independent verification, stable input and proof
+digests across revisions, source PIE hashes, and sample counts. It writes only
+repository-relative source paths; no machine-local paths from old driver logs
+are copied.
 
 ## Current H200 public basket
 

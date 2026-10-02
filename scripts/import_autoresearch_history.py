@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Import verified historical CUDA PIE and developmental recursion receipts."""
+"""Import verified historical H200 CUDA PIE receipts with workload geometry."""
 
 import argparse
 import csv
@@ -26,25 +26,15 @@ PIE_FILES = (
     ("hopper-v17", "2026-09-29-cairo-cuda-subsecond/suite-v17.json", "suite"),
     ("hopper-v18", "2026-09-29-cairo-cuda-subsecond/suite-v18.json", "suite"),
 )
-RECURSION_FILES = (
-    ("parent-preparation-metal", "2026-09-21-recursion-preparation/evidence/final-metal", "metal"),
-    ("parent-preparation-cpu", "2026-09-21-recursion-preparation/evidence/cpu", "cpu"),
-    ("direct-merkle-rows-metal", "2026-09-21-recursion-direct-merkle-rows/evidence/abba", "metal"),
-)
 PIE_COLUMNS = (
-    "revision", "benchmark", "input_sha256", "hardware", "security_profile",
+    "revision", "benchmark", "source_pie_sha256", "os_steps", "source_archive_bytes",
+    "component_count", "padded_component_rows", "ec_op_instances", "pedersen_instances",
+    "poseidon_instances", "bitwise_instances", "range_check_instances",
+    "input_sha256", "hardware", "security_profile",
     "run_mode", "samples", "proof_stage_median_s", "ingress_median_s",
     "adapted_publication_median_s", "process_median_s", "peak_device_bytes_max",
     "prover_sha256", "proof_sha256", "verified", "source_repo_commit",
     "source_path", "source_sha256",
-)
-RECURSION_COLUMNS = (
-    "experiment", "backend", "hardware", "security_profile", "workload",
-    "samples_per_arm", "baseline_proof_stage_median_s", "candidate_proof_stage_median_s",
-    "baseline_process_median_s", "candidate_process_median_s",
-    "paired_process_ratio", "baseline_rss_median_bytes", "candidate_rss_median_bytes",
-    "verified", "source_repo_commit", "source_path", "source_sha256",
-    "samples_path", "samples_sha256",
 )
 
 
@@ -80,6 +70,16 @@ def validate_pie(row: dict) -> None:
 
 def pie_rows(source: Path, commit: str) -> list[dict]:
     result = []
+    coverage_path = source / "vectors/cairo/source_semantics/four_pie_coverage_v1.json"
+    coverage = {pie["name"].replace("SN_PIE_", "SN PIE "): pie for pie in
+                json.loads(coverage_path.read_text())["pies"]}
+    manifest = json.loads((source / "autoresearch/benchmarks/cairo/manifest.json").read_text())
+    pinned_inputs = {item["id"].replace("sn-pie-", "SN PIE "): item["sha256"]
+                     for item in manifest["workloads"] if item["id"].startswith("sn-pie-")}
+    if set(coverage) != set(pinned_inputs) or any(
+        pie["sha256"] != pinned_inputs[name] for name, pie in coverage.items()
+    ):
+        raise ValueError("historical PIE geometry differs from pinned input manifest")
     input_hashes = {}
     proof_hashes = {}
     for revision, relative, kind in PIE_FILES:
@@ -99,6 +99,9 @@ def pie_rows(source: Path, commit: str) -> list[dict]:
         if set(groups) != {f"SN PIE {n}" for n in range(1, 5)}:
             raise ValueError(f"historical suite does not cover four PIEs: {relative}")
         for benchmark, rows in sorted(groups.items()):
+            pie = coverage[benchmark]
+            resources = pie["execution_resources"]
+            builtins = resources["builtin_instance_counter"]
             input_sha = {row["adapted_input_sha256"] for row in rows}
             proof_sha = {row["proof_sha256"] for row in rows}
             if len(input_sha) != 1 or len(proof_sha) != 1:
@@ -112,6 +115,17 @@ def pie_rows(source: Path, commit: str) -> list[dict]:
             proof_hashes[benchmark] = one_proof
             result.append({
                 "revision": revision, "benchmark": benchmark,
+                "source_pie_sha256": pie["sha256"],
+                "os_steps": resources["n_steps"],
+                "source_archive_bytes": pie["bytes"],
+                "component_count": len(pie["components"]),
+                "padded_component_rows": sum(part["padded_rows"] for component in pie["components"]
+                                             for part in component["parts"]),
+                "ec_op_instances": builtins["ec_op_builtin"],
+                "pedersen_instances": builtins["pedersen_builtin"],
+                "poseidon_instances": builtins["poseidon_builtin"],
+                "bitwise_instances": builtins["bitwise_builtin"],
+                "range_check_instances": builtins["range_check_builtin"],
                 "input_sha256": one_input, "hardware": "NVIDIA H200",
                 "security_profile": "cairo-canonical-70q-26pow-24interaction",
                 "run_mode": "cold_process", "samples": len(rows),
@@ -130,63 +144,6 @@ def pie_rows(source: Path, commit: str) -> list[dict]:
     return result
 
 
-def proof_ns_from_log(path: Path) -> int:
-    matches = []
-    for line in path.read_text().splitlines():
-        if line.startswith("{") and '"proof_ns"' in line:
-            event = json.loads(line)
-            if event.get("endpoint") == "segment_v2_detached_two_child_parent_candidate_q193":
-                matches.append(event["proof_ns"])
-    if len(matches) != 1 or matches[0] <= 0:
-        raise ValueError(f"expected one recursive proof stage in {path}")
-    return matches[0]
-
-
-def recursion_rows(source: Path, commit: str) -> list[dict]:
-    result = []
-    for experiment, relative, backend in RECURSION_FILES:
-        directory = source / "autoresearch/notes" / relative
-        samples_path = directory / "samples.json"
-        summary_path = directory / "summary.json"
-        samples = json.loads(samples_path.read_text())
-        summary = json.loads(summary_path.read_text())
-        groups = {"baseline": [], "candidate": []}
-        for index, sample in enumerate(samples):
-            if sample["warmup"]:
-                continue
-            if sample["verified"] is not True:
-                raise ValueError(f"unverified recursive sample: {relative} {index}")
-            log = directory / f"{index}-{sample['arm']}.log"
-            if digest(log) != sample["log_sha256"]:
-                raise ValueError(f"recursive log differs from receipt: {log}")
-            groups[sample["arm"]].append((sample, proof_ns_from_log(log)))
-        n = summary["samples_per_arm"]
-        if any(len(group) != n for group in groups.values()):
-            raise ValueError(f"recursive comparison sample count differs: {relative}")
-        process = {arm: statistics.median(sample["process_seconds"] for sample, _ in groups[arm])
-                   for arm in groups}
-        if any(abs(process[arm] - summary["median_seconds"][arm]) > 1e-8 for arm in groups):
-            raise ValueError(f"recursive process median differs: {relative}")
-        result.append({
-            "experiment": experiment, "backend": backend, "hardware": "Apple M5 Max",
-            "security_profile": "development-recursive_q193_v1-193q-16pcs-10interaction-fold4",
-            "workload": "one detached two-child parent", "samples_per_arm": n,
-            "baseline_proof_stage_median_s": f"{statistics.median(value for _, value in groups['baseline']) / 1e9:.9f}",
-            "candidate_proof_stage_median_s": f"{statistics.median(value for _, value in groups['candidate']) / 1e9:.9f}",
-            "baseline_process_median_s": f"{process['baseline']:.9f}",
-            "candidate_process_median_s": f"{process['candidate']:.9f}",
-            "paired_process_ratio": f"{summary['candidate_over_baseline']:.9f}",
-            "baseline_rss_median_bytes": round(statistics.median(sample["maximum_rss_bytes"] for sample, _ in groups["baseline"])),
-            "candidate_rss_median_bytes": round(statistics.median(sample["maximum_rss_bytes"] for sample, _ in groups["candidate"])),
-            "verified": "true", "source_repo_commit": commit,
-            "source_path": summary_path.relative_to(source).as_posix(),
-            "source_sha256": digest(summary_path),
-            "samples_path": samples_path.relative_to(source).as_posix(),
-            "samples_sha256": digest(samples_path),
-        })
-    return result
-
-
 def write_tsv(path: Path, columns: tuple[str, ...], rows: list[dict]) -> None:
     with path.open("w", newline="") as output:
         writer = csv.DictWriter(output, fieldnames=columns, delimiter="\t", lineterminator="\n")
@@ -202,8 +159,6 @@ def main() -> None:
     source = args.source.resolve()
     commit = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=source, text=True).strip()
     write_tsv(OUT / "historical-cairo-cuda-milestones.tsv", PIE_COLUMNS, pie_rows(source, commit))
-    write_tsv(OUT / "historical-recursion-milestones.tsv", RECURSION_COLUMNS,
-              recursion_rows(source, commit))
 
 
 if __name__ == "__main__":
