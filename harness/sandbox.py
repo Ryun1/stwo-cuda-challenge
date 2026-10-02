@@ -18,6 +18,14 @@ CONTAINER_ARTIFACTS = Path("/assets/cuda-artifacts")
 RUNTIME_FILES = (
     "zig-out/bin/stwo-cairo-cuda",
     "zig-out/bin/stwo-circuit-recursion-cuda",
+    "vectors/cairo/official/air_template_library_v1.json",
+    "vectors/cairo/official/all_opcodes.air_programs_v1.bin",
+    "vectors/cairo/official/all_builtins_canonical.air_programs_v1.bin",
+    "vectors/cairo/official/all_builtins_canonical_small.air_programs_v1.bin",
+    "vectors/cairo/official/witness_programs_v1.bin",
+    "vectors/cairo/official/witness_feed_topology_v1.json",
+    "vectors/cairo/cairo_fixed_tables.bin",
+    "vectors/cairo/cairo_relation_templates.bin",
     "vectors/circuit/official/registries/production.json",
     "vectors/circuit/official/programs/leaf_simple_bootloader_compiled.json",
 )
@@ -99,7 +107,7 @@ def docker_command(image: str, source: Path, staged: Path, case_dir: Path,
                "--pids-limit", "256", "--user", "65532:65532",
                "--ulimit", "fsize=1073741824:1073741824", "--ulimit", "core=0:0",
                "--name", f"stwo-judge-{uuid.uuid4().hex}",
-               "--workdir", "/work/run",
+               "--workdir", str(CONTAINER_SOURCE),
                "--tmpfs", "/tmp:rw,nosuid,nodev,size=268435456,mode=1777"]
     if gpu:
         command.extend(["--gpus", "device=0"])

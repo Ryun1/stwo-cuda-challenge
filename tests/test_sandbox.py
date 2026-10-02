@@ -55,6 +55,7 @@ class SandboxTests(unittest.TestCase):
                                      artifacts, ["/candidate/zig-out/bin/stwo-cairo-cuda"],
                                      {"GH_TOKEN": "secret", "CUDA_MODULE_LOADING": "LAZY"})
             self.assertEqual(command[:2], ["docker", "create"])
+            self.assertEqual(command[command.index("--workdir") + 1], "/candidate")
             self.assertIn("none", command)
             self.assertIn("device=0", command)
             self.assertIn("65532:65532", command)

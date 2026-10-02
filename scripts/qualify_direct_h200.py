@@ -64,7 +64,7 @@ def qualify_case(case: dict, source: Path, fixtures: Path, out: Path,
         command = [str(source / "zig-out/bin/stwo-cairo-cuda"), "prove",
                    "--backend", "cuda", "--input", str(input_path),
                    "--output", str(proof), "--report-out", str(report), "--repeat", "1"]
-        measured = run(command, measure_dir, nvml, env)
+        measured = run(command, measure_dir, nvml, env, cwd=source)
         proof_verifier(verifier, proof, case_dir / "verification")
         if sha(proof) != case["expected_proof_sha256"]:
             raise RuntimeError(f"canonical Cairo proof differs: {case['id']}")
@@ -77,7 +77,7 @@ def qualify_case(case: dict, source: Path, fixtures: Path, out: Path,
                    "--manifest", str(manifest), "--proof", str(case_dir / "root.proof"),
                    "--outputs", str(case_dir / "root_outputs.json"),
                    "--packed", str(case_dir / "root_packed.json")]
-        measured = run(command, measure_dir, nvml, env)
+        measured = run(command, measure_dir, nvml, env, cwd=source)
         check_root(case, case_dir)
         arenas = [int(value) for value in re.findall(
             r"circuit-proof .*arena_bytes=(\d+)",
@@ -96,7 +96,7 @@ def qualify_case(case: dict, source: Path, fixtures: Path, out: Path,
         command = [sys.executable, str(ROOT / "harness/run_pipeline.py"),
                    "--source", str(source), "--fixtures", str(fixtures),
                    "--case", str(case_file), "--out", str(result)]
-        measured = run(command, measure_dir, nvml, env)
+        measured = run(command, measure_dir, nvml, env, cwd=source)
         receipt = json.loads((result / "receipt.json").read_text())
         if (receipt.get("schema") != "stwo-cuda-external-pipeline-v1" or
                 receipt.get("backend") != "cuda-resident" or

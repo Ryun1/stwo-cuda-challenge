@@ -24,9 +24,10 @@ class DirectH200Tests(unittest.TestCase):
                     "input": {"path": "pie.cpi", "sha256": direct.sha(input_file)},
                     "expected_proof_sha256": direct.sha(expected_proof)}
 
-            def fake_run(command, measure_dir, _nvml, _env):
+            def fake_run(command, measure_dir, _nvml, _env, *, cwd):
                 self.assertFalse(measure_dir.exists())
                 self.assertNotEqual(measure_dir, output / "pie_test")
+                self.assertEqual(cwd, source)
                 Path(command[command.index("--output") + 1]).write_bytes(expected_proof.read_bytes())
                 report = {"completed_trials": [{
                     "input_sha256": list(bytes.fromhex(case["input"]["sha256"])),

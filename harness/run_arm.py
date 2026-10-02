@@ -147,7 +147,7 @@ class Nvml:
 
 
 def run(command: list[str], out: Path, nvml: Nvml, env: dict, *, timeout: int = 900,
-        container: bool = False) -> dict:
+        container: bool = False, cwd: Path | None = None) -> dict:
     out = out.resolve()
     out.mkdir(parents=True)
     out.chmod(0o700 if container else 0o777)
@@ -214,7 +214,7 @@ def run(command: list[str], out: Path, nvml: Nvml, env: dict, *, timeout: int = 
         with (out / "process.log").open("wb") as log:
             launched = ["docker", "start", "--attach", container_id] if container_id else command
             process = subprocess.Popen(launched, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                                       cwd=out, env=runtime_env, start_new_session=True)
+                                       cwd=cwd or out, env=runtime_env, start_new_session=True)
             reader = threading.Thread(target=capture_process_output,
                                       args=(process.stdout, log, log_result), daemon=True)
             reader.start()
