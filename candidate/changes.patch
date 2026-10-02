@@ -1,0 +1,90 @@
+diff --git a/src/integrations/cairo_cuda/executor/preprocessed_cache.zig b/src/integrations/cairo_cuda/executor/preprocessed_cache.zig
+index 213f84b0..ee091ffe 100644
+--- a/src/integrations/cairo_cuda/executor/preprocessed_cache.zig
++++ b/src/integrations/cairo_cuda/executor/preprocessed_cache.zig
+@@ -202,10 +202,7 @@ pub fn load(
+         const values = staging[0..words];
+         try stream.readSliceAll(std.mem.sliceAsBytes(values));
+         if (profile) read_ns += phase_timer.lap();
+-        for (values) |value| {
+-            if (value >= 0x7fff_ffff)
+-                return error.NonCanonicalPreprocessedCoefficient;
+-        }
++        try validateCanonicalCoefficients(values);
+         if (profile) validate_ns += phase_timer.lap();
+         if (log_rows > 16)
+             canonicalizeSimdCoefficientBlocks(values, log_rows);
+@@ -253,6 +250,37 @@ pub fn load(
+     return receipt;
+ }
+ 
++/// Reject a coefficient column that is not entirely canonical field elements.
++///
++/// The predicate is unchanged: some `value >= 0x7fff_ffff` exists if and only
++/// if `max(values) >= 0x7fff_ffff`, so folding a maximum is equivalent to the
++/// per-word scan and still raises the same error for the same column.
++///
++/// The pinned form tested each word in a scalar loop whose body could exit.
++/// That early return is what stops LLVM from widening the loop, so the column
++/// streamed one `u32` per iteration. A branch-free maximum over `@Vector(8,
++/// u32)` lanes is a pure elementwise `max` the backend can vectorize, and it
++/// needs no early exit to be correct. The measured STWZPPC artifact carries
++/// 543,101,879 coefficients (2.02 GiB), so this pass runs once per proof on
++/// every case in the basket.
++fn validateCanonicalCoefficients(values: []const u32) !void {
++    const lane_count = 8;
++    const Lanes = @Vector(lane_count, u32);
++    var lanes: Lanes = @splat(0);
++    var index: usize = 0;
++    const body = values.len - values.len % lane_count;
++    while (index < body) : (index += lane_count) {
++        const chunk: Lanes = @as(*const [lane_count]u32, @ptrCast(values.ptr + index)).*;
++        lanes = @max(lanes, chunk);
++    }
++    var tail: u32 = 0;
++    while (index < values.len) : (index += 1) {
++        tail = @max(tail, values[index]);
++    }
++    if (@reduce(.Max, lanes) >= 0x7fff_ffff or tail >= 0x7fff_ffff)
++        return error.NonCanonicalPreprocessedCoefficient;
++}
++
+ const canonicalizeSimdCoefficientBlocks = @import("stwo_cairo_frontend").preprocessed.coefficient_order.transposeSimdBlocks;
+ 
+ fn receiptIdentity(value: Receipt) proof_ir.Digest {
+@@ -301,6 +329,35 @@ test "SIMD coefficient canonicalization is an involution" {
+         try std.testing.expectEqual(@as(u32, @intCast(index)), value);
+ }
+ 
++test "coefficient validation rejects non-canonical words at every lane and tail position" {
++    // A clean column is accepted whatever its length, so a short column still
++    // exercises the scalar tail and a long one the vector body.
++    for ([_]usize{ 1, 2, 7, 8, 9, 15, 16, 17, 64, 129 }) |len| {
++        const values = try std.testing.allocator.alloc(u32, len);
++        defer std.testing.allocator.free(values);
++        @memset(values, 0);
++        values[len - 1] = 0x7fff_fffe;
++        try validateCanonicalCoefficients(values);
++
++        // Every position must reject, including the ones that only reach the
++        // scalar tail and the last lane of a partial vector.
++        for (0..len) |at| {
++            @memset(values, 0);
++            values[at] = 0x7fff_ffff;
++            try std.testing.expectError(
++                error.NonCanonicalPreprocessedCoefficient,
++                validateCanonicalCoefficients(values),
++            );
++            values[at] = 0x8000_0000;
++            try std.testing.expectError(
++                error.NonCanonicalPreprocessedCoefficient,
++                validateCanonicalCoefficients(values),
++            );
++            @memset(values, 0);
++        }
++    }
++}
++
+ test "device image key follows fixed coefficient layout, not arena plan identity" {
+     var logs = [_]u32{2};
+     var offsets = [_]u64{ 0, 4 };
