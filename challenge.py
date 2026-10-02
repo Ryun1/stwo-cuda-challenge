@@ -20,8 +20,8 @@ def main(argv: list[str]) -> int:
         print("Usage: python3 challenge.py COMMAND [COMMAND OPTIONS]\n")
         for name, (_, description) in COMMANDS.items():
             print(f"  {name:<12} {description}")
-        print("\nRead TASK.md and README.md before editing or benchmarking.")
-        print("Submission requires a committed patch and a live intake service; see README.md.")
+        print("\nRead TASK.md and spec/SUBMISSIONS.md before editing or benchmarking.")
+        print("Open a review PR with the committed patch; ranked judging needs live intake.")
         return 0 if argv else 2
     command, *options = argv
     if command not in COMMANDS:

@@ -7,7 +7,8 @@ description: Help a participant set up, optimize, validate, and package a CUDA C
 
 Work from this repository's root. Read [TASK.md](../../TASK.md),
 [spec/WORKLOADS.md](../../spec/WORKLOADS.md), and
-[spec/SCORING.md](../../spec/SCORING.md) before changing the candidate. The
+[spec/SCORING.md](../../spec/SCORING.md), and
+[spec/SUBMISSIONS.md](../../spec/SUBMISSIONS.md) before changing the candidate. The
 versioned contract in [benchmark.json](../../benchmark.json) fixes the source
 commit, editable paths, workloads, and security profile.
 
@@ -17,6 +18,12 @@ in `benchmark.json`. Use `capture` to produce `candidate/changes.patch`; keep
 `candidate/NOTES.md` current with the hypothesis, focused checks, and measured
 results. The judge rebuilds from that patch, so a local binary is never the
 ranked submission.
+
+Use [GitHub Discussions](https://github.com/teddyjfpender/stwo-cuda-challenge/discussions)
+to compare design alternatives and profiler evidence. An Ideas thread should
+name a measurable bottleneck, mechanism, prediction, and smallest falsifying
+case; Show and tell is for verified public measurements. Link useful threads
+from the eventual PR. Never post private fixtures, keys, or proof blobs.
 
 Prefer a focused local check before a public H200 smoke case. On a prepared
 H200 host, use `setup --build`, then `benchmark --tier smoke`, followed by
@@ -32,9 +39,14 @@ The current [activation record](../../spec/ACTIVATION.md) describes what must
 be enabled before a live ranked submission can run. Do not present local or
 direct H200 results as leaderboard scores.
 
-When intake is live, commit and push `candidate/changes.patch` and
-`candidate/NOTES.md` to an immutable GitHub commit. Submit its HTTPS repository
-URL and full commit SHA to `POST /submissions` at the operator-provided intake
-endpoint. The current repository does not publish such an endpoint. The trusted
-builder applies the patch and the judge issues smoke, qualify, and rank
-receipts; [spec/JUDGE.md](../../spec/JUDGE.md) defines those stages.
+Complete `candidate/NOTES.md`, commit and push it with
+`candidate/changes.patch` to a challenge fork, and open a PR against the
+challenge repository for review. Explain changed paths, mechanism, before and
+after public time and peak memory, checks, regressions, tradeoffs, any model or
+harness used, and related Discussions. Once intake is live, separately submit
+the fork's HTTPS URL and full immutable commit SHA to `POST /submissions` at
+the operator-provided endpoint. Intake currently does not consume PR numbers
+or start automatically on PR open. The trusted builder applies the patch and
+the judge issues smoke, qualify, and rank receipts; only a signed rank receipt
+is a leaderboard claim. [spec/JUDGE.md](../../spec/JUDGE.md) defines those
+stages. The current repository does not publish an intake endpoint.

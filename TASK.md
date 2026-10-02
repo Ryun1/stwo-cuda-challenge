@@ -1,29 +1,41 @@
 # Task for an optimization agent
 
 Improve CUDA proving of Starknet Cairo PIEs and their recursive aggregation on
-one H200. Optimize the full path from an **already adapted** input to a
-published, independently verified proof/root. Read `spec/WORKLOADS.md` and
-`spec/SCORING.md` before editing; all cases and guards matter.
+one H200. The fixed basket covers standalone PIE proofs, two- and eight-leaf
+folds, and two complete PIE → Cairo proof → wrap → fold → root modes. Optimize
+adapted-input-to-published-proof time and whole-device peak memory while
+preserving every proof, security, and source-policy requirement. All cases and
+track guards matter; read [`WORKLOADS.md`](spec/WORKLOADS.md),
+[`SCORING.md`](spec/SCORING.md), and
+[`SUBMISSIONS.md`](spec/SUBMISSIONS.md) before editing.
 
-`./setup.sh` checks out the pinned prover in `workspace/stwo-zig`. Edit only
-its allowed CUDA paths (listed in `benchmark.json`). Use the existing CPU,
-Metal, and Rust reference implementations as sources of understanding, but do
-not alter proof security, public outputs, verifier code, fixture selection,
-measurement, or the challenge contract. Capture the patch with
-`./scripts/capture-candidate.sh` and include a short `candidate/NOTES.md`
-explaining the mechanism, expected benefit, tests, and known tradeoffs.
-The capture script refreshes derived CUDA source/product manifests for kernel
-edits and checks them against the pinned product policy. Do not edit those
-manifests by hand; the upstream baseline closure remains immutable.
+The pinned prover is checked out at `workspace/stwo-zig`. The five allowed CUDA
+directories and their purposes are listed in `spec/SUBMISSIONS.md` and
+`benchmark.json`. Use CPU, Metal, and Rust implementations for understanding,
+but change production code only in those CUDA directories. The challenge
+contract, judge, verifier, fixture manifest, security profile, and reference
+outputs are outside the candidate edit surface. `challenge.py capture`
+refreshes derived CUDA manifests and writes the restricted
+`candidate/changes.patch`; do not hand-edit those manifests or the patch.
 
-The fast loop is a small local compile/test and one public PIE or recursion
-case. The expensive loop runs the whole H200 cohort only after the candidate
-passes source policy and smoke verification. Correctness comes before speed:
-standalone Cairo proofs need the pinned official Rust verifier and pipeline
-leaves need the pinned production-registry Rust verifier; every recursive
-root must verify and bind the expected contiguous leaves and output roots.
+Investigate substantial bottlenecks in witness/lookup storage, host/device
+transfer, kernel layout, fixed-asset reuse, scheduling, wrap/fold construction,
+and publication. Form a falsifiable hypothesis, measure phases and memory,
+then test the smallest public case that could disprove it. Use
+[GitHub Discussions](https://github.com/teddyjfpender/stwo-cuda-challenge/discussions)
+to debate architectures, compare evidence, and share unsuccessful ideas. Link
+useful threads from the PR. Discussions are a research channel, not an
+alternative to proof checks or a ranked receipt.
 
-Look especially at fixed-asset upload and reuse, witness/lookup storage
-lifetimes, host/device transfer, native CUDA kernels, batch scheduling,
-wrap/fold circuit construction, and proof publication. Report measured phase
-changes; do not infer end-to-end gains from kernel time alone.
+Keep the development loop small: focused compile/test, one public H200 smoke
+case, then complete qualification when promising. Standalone Cairo proofs
+need the pinned official Rust verifier; pipeline leaves need the pinned
+production-registry Rust verifier; every recursive root must bind the correct
+contiguous leaves and outputs. Record all regressions and the exact timing
+scope. A faster kernel alone is not an end-to-end improvement.
+
+Finish by completing `candidate/NOTES.md`, capturing the patch, and opening a
+reviewable PR in this challenge repository. That PR is separate from the
+operator's immutable-commit intake and H200 dispatch. The PR must explain the
+changed paths, mechanism, before/after public measurements and memory,
+correctness checks, tradeoffs, attribution, and related Discussions.

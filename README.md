@@ -24,6 +24,8 @@ reference proofs are under
 Start with [TASK.md](TASK.md). The fixed contract is [benchmark.json](benchmark.json),
 the workload and proof obligations are in [spec/WORKLOADS.md](spec/WORKLOADS.md),
 and the scoring and tradeoffs are in [spec/SCORING.md](spec/SCORING.md).
+The [submission guide](spec/SUBMISSIONS.md) lists editable CUDA files,
+validation, Discussion use, PR contents, and the separate judge intake step.
 Coding agents can load the repository's
 [participant skill](skills/stwo-cuda-challenge/SKILL.md); its commands are
 available through [`challenge.py`](challenge.py). Both use paths relative to
@@ -90,9 +92,14 @@ Use `python3 challenge.py benchmark --tier qualify` for all cases once and
 entry points; `python3 challenge.py --help` lists the participant commands.
 To package a candidate, update `candidate/NOTES.md`, then commit and push
 `candidate/changes.patch` and `candidate/NOTES.md` in your challenge fork.
+Open a PR against this challenge repository for review and link any relevant
+[research Discussions](spec/DISCUSSIONS.md). Opening a PR does not start a
+GPU run or constitute a ranked submission.
 Once the intake service is live, submit that fork's HTTPS URL and **full**
 commit SHA to its `POST /submissions` endpoint. The endpoint is not published
-yet; the checked-in [activation record](spec/ACTIVATION.md) tracks that gate.
+yet. Intake accepts a commit rather than a PR number and does not currently
+enforce PR association. The checked-in [activation record](spec/ACTIVATION.md)
+tracks that gate.
 The benchmark defaults to the checked-in public inputs and setup assets under
 `.cache/`; operator paths and the private manifest can be supplied with CLI
 flags or the `STWO_*` variables shown in `.github/workflows/h200-rank.yml`.
@@ -132,6 +139,9 @@ prepared locally; its HTTPS hosting remains part of deployment.
 The service/runner design, artifact policy, isolation requirements, and H200
 budget controls are in [spec/JUDGE.md](spec/JUDGE.md). The
 [H200 operator runbook](spec/H200_RUNBOOK.md) gives the activation sequence.
+The [operations map](spec/OPERATIONS.md) explains how PRs, intake, GitHub
+Actions, signed receipts, and `autoresearch-web` fit together and which live
+connections still need deployment.
 The CPU-only intake prototype and trusted dispatcher are runnable locally:
 
 ```sh

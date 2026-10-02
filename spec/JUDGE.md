@@ -9,6 +9,11 @@ types, size, base commit, syntax, and provenance without executing candidate
 code. It records the exact submitted commit and a content digest. Symlinks,
 submodules, generated build outputs, modifications to tests/harness/verifiers,
 and executable scripts outside the allowed source are rejected.
+Participants should open a reviewable PR against the challenge repository,
+but the current intake contract does not read PR numbers or enforce that one
+exists. A PR open or update never triggers H200 work. The operator must bind a
+PR's exact submitted commit to the returned submission ID if the website is
+to display PR metadata beside a receipt; see [`OPERATIONS.md`](OPERATIONS.md).
 
 An optional build artifact may accompany a submission **only for a future
 fast screening tier**. Intake can receive it by digest and stores it outside
