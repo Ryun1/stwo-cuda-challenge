@@ -55,6 +55,7 @@ def qualify_case(case: dict, source: Path, fixtures: Path, out: Path,
                  env: dict[str, str]) -> dict:
     case_dir = out / case["id"].replace(":", "_")
     case_dir.mkdir(parents=True)
+    measure_dir = out / "_measurements" / case_dir.name
     circuit = source / "zig-out/bin/stwo-circuit-recursion-cuda"
     registry = source / "vectors/circuit/official/registries/production.json"
     if case["family"] == "pie":
@@ -63,7 +64,7 @@ def qualify_case(case: dict, source: Path, fixtures: Path, out: Path,
         command = [str(source / "zig-out/bin/stwo-cairo-cuda"), "prove",
                    "--backend", "cuda", "--input", str(input_path),
                    "--output", str(proof), "--report-out", str(report), "--repeat", "1"]
-        measured = run(command, case_dir, nvml, env)
+        measured = run(command, measure_dir, nvml, env)
         proof_verifier(verifier, proof, case_dir / "verification")
         if sha(proof) != case["expected_proof_sha256"]:
             raise RuntimeError(f"canonical Cairo proof differs: {case['id']}")
@@ -76,11 +77,11 @@ def qualify_case(case: dict, source: Path, fixtures: Path, out: Path,
                    "--manifest", str(manifest), "--proof", str(case_dir / "root.proof"),
                    "--outputs", str(case_dir / "root_outputs.json"),
                    "--packed", str(case_dir / "root_packed.json")]
-        measured = run(command, case_dir, nvml, env)
+        measured = run(command, measure_dir, nvml, env)
         check_root(case, case_dir)
         arenas = [int(value) for value in re.findall(
             r"circuit-proof .*arena_bytes=(\d+)",
-            (case_dir / "process.log").read_text(errors="replace"))]
+            (measure_dir / "process.log").read_text(errors="replace"))]
         if not arenas:
             raise RuntimeError("fold has no resident circuit proof telemetry")
         plan = max(arenas)
@@ -95,7 +96,7 @@ def qualify_case(case: dict, source: Path, fixtures: Path, out: Path,
         command = [sys.executable, str(ROOT / "harness/run_pipeline.py"),
                    "--source", str(source), "--fixtures", str(fixtures),
                    "--case", str(case_file), "--out", str(result)]
-        measured = run(command, case_dir, nvml, env)
+        measured = run(command, measure_dir, nvml, env)
         receipt = json.loads((result / "receipt.json").read_text())
         if (receipt.get("schema") != "stwo-cuda-external-pipeline-v1" or
                 receipt.get("backend") != "cuda-resident" or
