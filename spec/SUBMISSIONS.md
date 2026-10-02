@@ -63,15 +63,15 @@ logs, and binaries are not PR artifacts. A submission PR need not be merged
 into the challenge's `main` branch to be judged; accepted code can later be
 applied or rebased into upstream `stwo-zig` separately.
 
-The **judge submission is a separate step**. Once the intake endpoint is
-deployed, send the fork's HTTPS repository URL and the full, immutable commit
-SHA containing the patch and notes to `POST /submissions`. The service returns
-a submission ID. It currently accepts a Git commit, **not a PR number**, and
-does not automatically discover, require, or create a PR. Keep the PR's head
-at the submitted SHA or record the submitted SHA in the PR when adding more
-commits. Link the submission ID and later public signed receipt in the PR.
-The trusted builder and H200 judge run only after operator dispatch; opening a
-PR does not trigger paid GPU work. No public intake endpoint is live yet.
+For this internal challenge, **the PR is enough to enter the operator's daily
+queue**. An operator reviews it and applies the `ready-to-judge` label. The
+batch collector freezes that PR's full head SHA, reads the patch and notes
+from that commit, validates them through immutable intake, and records the PR
+number, SHA, and submission ID together. Pushing another commit creates a new
+candidate; the old judged result still belongs to its original SHA. A PR does
+not trigger paid GPU work automatically. The operator starts the H200 batch
+and publishes independently verified signed receipts afterward. No public
+intake endpoint or participant API key is needed for this workflow.
 
 A complete candidate submission includes:
 
@@ -84,7 +84,6 @@ A complete candidate submission includes:
   explaining the claimed improvement. A claim remains unranked until the
   operator publishes an independently verified, signed rank receipt.
 
-The current intake authentication uses a shared bearer token and global rate
-limit. It is **not** yet a multi-user identity system; public self-service
-access requires an authenticated front door with per-user quotas and a PR to
-submission mapping. See [`OPERATIONS.md`](OPERATIONS.md).
+The standalone HTTP intake remains available for a future self-service mode,
+but its shared bearer token is not a participant credential. The manual PR
+batch and its setup are in [`OPERATIONS.md`](OPERATIONS.md).

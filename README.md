@@ -158,7 +158,17 @@ budget controls are in [spec/JUDGE.md](spec/JUDGE.md). The
 The [operations map](spec/OPERATIONS.md) explains how PRs, intake, GitHub
 Actions, signed receipts, and `autoresearch-web` fit together and which live
 connections still need deployment.
-The CPU-only intake prototype and trusted dispatcher are runnable locally:
+For the internal daily batch, an operator reviews PRs, adds the
+`ready-to-judge` label, and freezes their exact heads into local intake state:
+
+```sh
+python3 service/pr_batch.py --dry-run
+python3 service/pr_batch.py --source workspace/baseline \
+  --state /operator/state
+```
+
+The standalone HTTP intake prototype and trusted dispatcher also remain
+runnable locally:
 
 ```sh
 python3 service/intake.py --source workspace/baseline \

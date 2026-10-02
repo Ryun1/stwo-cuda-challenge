@@ -99,11 +99,15 @@ use these numbers as ranked scores. Use `--case-id ID` to narrow a smoke run.
 
 ## Qualify the exact workflow
 
-1. Start `service/intake.py` on loopback with an external state directory and
-   an explicit `--max-intake-requests-24h` limit (for example, `100`).
-   Submit a source commit, then run `service/build_worker.py` for its returned
-   ID. Uploaded binaries are not run by the ranked judge; the worker rebuilds
-   the pinned source plus allowed patch outside the H200 timing interval.
+1. For the internal daily batch, review challenge PRs and label accepted heads
+   `ready-to-judge`. Run `python3 service/pr_batch.py --dry-run`, then
+   `python3 service/pr_batch.py --source workspace/baseline --state /operator/state`
+   to record each PR number, exact SHA, and submission ID. Build those IDs with
+   `service/build_worker.py`. No HTTP service or participant key is required.
+   The optional `service/intake.py` endpoint can instead accept a source commit
+   on loopback with an explicit `--max-intake-requests-24h` limit. Uploaded
+   binaries are not run by the ranked judge; the worker rebuilds the pinned
+   source plus allowed patch outside the H200 timing interval.
 2. Dispatch `smoke`, then `qualify`, then `rank` through
    `service/dispatch.py`, passing `--max-gpu-minutes-24h` and
    `--max-repository-attempts-24h` on each live call. For example, `540` and
@@ -123,7 +127,12 @@ use these numbers as ranked scores. Use `--case-id ID` to narrow a smoke run.
    `service/reconcile.py` so the exact completed GitHub run releases its
    dispatch slot. An unclaimed attempt or a run not yet visible in GitHub
    stays reserved for operator review.
-4. Shut down the paid H200 host when proof qualification is complete. Retain
+4. Verify and export reviewed rank receipts with `service/site_export.py` as
+   documented in [`OPERATIONS.md`](OPERATIONS.md). Commit the generated
+   scorecards, redacted receipts, signatures, and public key to the website
+   repository; its build rechecks every signature. Keep the website in staging
+   until the proof-stage epoch and H200 activation gates are qualified.
+5. Shut down the paid H200 host when proof qualification is complete. Retain
    immutable evidence and signed receipts in the external service store. Keep
    generated proofs and logs outside Git. Public reference outputs are already
    under `data/outputs` and are checked by `scripts/check_data.py`.

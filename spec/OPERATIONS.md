@@ -30,9 +30,11 @@ agent's fork + Discussion ──► challenge PR (human review, claimed result)
 ## What exists now
 
 - `service/intake.py` accepts a public fork URL and full commit SHA, validates
-  the patch, and stores a content-addressed job. It does **not** require a PR,
-  attach PR metadata, or dispatch automatically. Its bearer token is a shared
-  operator credential, not per-participant authentication.
+  the patch, and stores a content-addressed job. `service/pr_batch.py` now
+  reads operator-labeled public PRs, freezes their exact head SHA, performs
+  that same intake validation without an HTTP server, and records the PR ↔
+  commit ↔ submission mapping. Its `--dry-run` mode is read-only. The HTTP
+  intake remains optional and its bearer token is an operator credential.
 - `service/build_worker.py` produces a trusted binary and attestation from the
   pinned source plus patch. `service/dispatch.py` enforces a single active H200
   attempt and budgets, then triggers the manual
@@ -50,6 +52,51 @@ agent's fork + Discussion ──► challenge PR (human review, claimed result)
   publicly fetchable forks, or the operator must add narrowly scoped
   authenticated Git fetch for private forks; the present service cannot fetch
   private forks.
+
+## Daily manual PR batch
+
+GitHub holds the queue; no always-on bot or H200 is needed between sessions.
+The operator applies the `ready-to-judge` label only after reviewing a PR.
+Run the following from this repository root, using persistent state **outside
+Git** and a clean checkout of the pinned prover source:
+
+```sh
+python3 service/pr_batch.py --dry-run
+python3 service/pr_batch.py --source workspace/baseline \
+  --state /operator/state
+python3 service/build_worker.py --source workspace/baseline \
+  --state /operator/state --submission-id ID
+python3 service/dispatch.py --source workspace/baseline \
+  --state /operator/state --submission-id ID \
+  --repository teddyjfpender/stwo-cuda-challenge --tier smoke --dry-run
+```
+
+The collector is idempotent for the same PR head. It rejects a deleted/private
+fork, invalid patch, or an identical patch previously owned by another SHA;
+the operator sees each rejection in its JSON output. A new PR commit is a new
+immutable candidate. Keep the mapping and receipts on a persistent volume,
+even if the H200 host is shut down after each daily batch. Once the judge is
+activated, use the [H200 runbook](H200_RUNBOOK.md) to dispatch smoke, qualify,
+then rank serially with explicit daily budgets. The operator reviews rank
+evidence and promotion decisions before publishing the site snapshot:
+
+```sh
+python3 service/site_export.py --source workspace/baseline \
+  --state /operator/state --public-key /operator/operator-public.pem \
+  --website-root /path/to/autoresearch-web \
+  --promotions /operator/promotions.json
+```
+
+The optional promotions file maps submission IDs to operator-approved track
+names, for example `{"ID": ["latency"]}`. The exporter checks each selected
+track was promotable against baseline in the signed judge receipt. A later
+leader still requires a fresh head-to-head measurement and operator review;
+the site never infers that promotion from public case rows. The export verifies
+the Ed25519 signature and immutable PR/commit/patch/epoch binding, copies the
+redacted signed receipts and public key, and writes `scorecards.json`. Commit
+those generated website files to its repository; Vercel deploys that commit.
+The site build verifies every receipt signature again. It does not show ranked
+entries while the challenge status is `staging`.
 
 ## Bring up the judge
 
@@ -73,13 +120,10 @@ agent's fork + Discussion ──► challenge PR (human review, claimed result)
    Register the runner with `self-hosted` and `h200-stwo-challenge` labels, set
    every required `STWO_*` Actions variable, and run
    `python3 service/activation.py --repository OWNER/REPO`.
-4. Expose intake through an authenticated HTTPS front door with participant
-   identity and quotas; keep its shared bearer token on the server side. Run
-   the CPU builder from a controlled queue. Do not call intake from browser
-   JavaScript or put its token in a public page. The front door should accept
-   the PR URL as review metadata, resolve its **exact head commit**, verify
-   that commit is the one submitted to intake, and store the PR number ↔
-   submission ID mapping. This binding is **not implemented** in v1 intake.
+4. For the daily internal batch, use the PR collector above. A future public
+   self-service mode would additionally need an authenticated HTTPS front
+   door with participant identity and quotas. Never put the HTTP intake's
+   shared operator token in browser JavaScript.
 5. Calibrate a fresh baseline and A/A noise on the actual runner, then run one
    source-only submission through smoke, qualify, and rank using the operator
    dispatcher. Inspect the full judge evidence and independently verify the
@@ -92,9 +136,10 @@ agent's fork + Discussion ──► challenge PR (human review, claimed result)
 The website imports contract and measured research files from a local
 challenge checkout. It also fetches recent public PR metadata from GitHub,
 and recent Discussions when its server has a read-only GitHub token. Its
-`scorecards.json` is empty, and it has **no signed-receipt ingestion**. The
-site remains a public, read-only research projection, separate from judge
-state and secrets. The staging deployment is
+`scorecards.json` is empty because no signed rank receipt exists yet. The
+manual export above provides a verified receipt-to-site path; the site remains
+a public, read-only projection, separate from judge state and secrets. The
+staging deployment is
 [autoresearch-web-lac.vercel.app](https://autoresearch-web-lac.vercel.app):
 
 1. Ingest challenge PR metadata through the
@@ -110,21 +155,17 @@ state and secrets. The staging deployment is
    [`X-Hub-Signature-256`](https://docs.github.com/en/webhooks/using-webhooks/validating-webhook-deliveries).
    PR descriptions and claimed improvements are
    **untrusted claims**, displayed as such.
-2. Publish a separate read-only feed of the **redacted** ranked receipt JSON,
-   its detached signature, and the associated immutable submission metadata
-   (`submission_id`, fork URL, commit SHA, patch digest, contract epoch). The
-   current intake can fetch a receipt by ID behind its bearer token, but has
-   no public listing/feed. Build that projection on the trusted side; never
-   expose SQLite, the bearer token, signing key, private holdout case IDs, or
-   unredacted evidence to the site.
-3. Verify each receipt's Ed25519 signature against the separately published
-   operator public key; check epoch, source commit, patch digest, submission
-   ID, rank tier, and per-case public IDs. Join it to the stored immutable
-   submission and PR head SHA. Only then transform `scores.public_per_case`
-   into the site's scorecard format and show a ranked entry. Keep a receipt
-   digest and PR URL on the displayed record for audit. Refresh/rebuild the
-   site when a PR, Discussion, or signed receipt changes; the current imported
-   JSON approach supports scheduled or webhook-triggered rebuilds.
+2. The manual exporter publishes **redacted** receipt JSON, detached
+   signatures, the operator public key, and a derived scorecard file. It never
+   copies SQLite, the shared bearer token, signing key, private case IDs, or
+   unredacted evidence. The website build rejects a changed or unsigned
+   receipt. Its aggregate score comes from the signed judge output, including
+   hidden holdouts; it must never rescore only the public per-case rows.
+3. Rank results appear only after an operator-reviewed export and a website
+   commit. The derived card retains receipt digest and PR URL for audit. The
+   staging site still suppresses ranking until the H200 and scoring activation
+   gates are met; merely opening a PR or publishing a research measurement
+   never creates a ranked entry.
 4. Keep the website explicit about both the current `h200-v1` implementation
    and the intended proving-time research target. It should show the retained
    Cairo proof-stage times prominently and full-command time separately. The

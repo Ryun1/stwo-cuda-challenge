@@ -97,6 +97,8 @@ def publish_validated(store: Store, submission_id: str, run_dir: Path, tier: str
     candidate = [entry for entry in evidence["candidate"] if entry["case_id"] in visible]
     receipt = {"schema": "stwo-cuda-public-receipt-v1", "submission_id": submission_id,
                "contract_epoch": store.config["contractEpoch"], "tier": tier,
+               "source_commit": store.config["sourceCommit"],
+               "repository": row["repository"], "commit_sha": row["commit_sha"],
                "dispatch_attempt": attempt,
                "patch_sha256": row["patch_sha256"],
                "build_attestation_sha256": hashlib.sha256(build_bytes).hexdigest(),
