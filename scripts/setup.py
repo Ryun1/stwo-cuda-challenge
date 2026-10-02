@@ -15,6 +15,13 @@ sys.path.insert(0, str(ROOT))
 from harness.kernel_closure import verify as verify_kernel_closure
 from harness.cuda_toolchain import cuda_build_options
 PREPROCESSED_SHA256 = "4d4fda06dfa3bca19554510a158f6c50abad06a74d29c17885ed4cbb88ada34d"
+CAIRO_ARTIFACTS = (
+    "official/air_template_library_v1.json",
+    "official/witness_programs_v1.bin",
+    "official/witness_feed_topology_v1.json",
+    "cairo_fixed_tables.bin",
+    "cairo_relation_templates.bin",
+)
 
 
 def run(*args: str, cwd: Path | None = None) -> None:
@@ -28,6 +35,21 @@ def sha(path: Path) -> str:
         for block in iter(lambda: source.read(1 << 20), b""):
             digest.update(block)
     return digest.hexdigest()
+
+
+def prepare_cuda_artifacts(baseline: Path) -> None:
+    """Stage only the pinned Cairo assets required by the CUDA product."""
+    target_root = ROOT / ".cache/cuda-artifacts"
+    for name in CAIRO_ARTIFACTS:
+        source = baseline / "vectors/cairo" / name
+        if not source.is_file():
+            raise SystemExit(f"pinned CUDA artifact missing: {source}")
+        target = target_root / name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        if not target.is_file() or sha(target) != sha(source):
+            shutil.copy2(source, target)
+        if sha(target) != sha(source):
+            raise SystemExit(f"staged CUDA artifact differs: {target}")
 
 
 def prepare_judge_assets(baseline: Path) -> None:
@@ -56,7 +78,7 @@ def prepare_judge_assets(baseline: Path) -> None:
         if sha(asset) != PREPROCESSED_SHA256:
             asset.unlink(missing_ok=True)
             raise SystemExit("canonical preprocessed asset differs from the pinned reference")
-    (ROOT / ".cache/cuda-artifacts").mkdir(parents=True, exist_ok=True)
+    prepare_cuda_artifacts(baseline)
 
 
 def main() -> None:
