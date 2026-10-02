@@ -1,0 +1,89 @@
+diff --git a/src/integrations/cairo_cuda/canonical_geometry.zig b/src/integrations/cairo_cuda/canonical_geometry.zig
+index f1f5eddd..0fab4ebe 100644
+--- a/src/integrations/cairo_cuda/canonical_geometry.zig
++++ b/src/integrations/cairo_cuda/canonical_geometry.zig
+@@ -60,11 +60,10 @@ pub fn resolve(
+                 }
+                 if (parents == 0) return error.MissingCompactProducer;
+                 if (!parents_ready) continue;
+-                const distinct = if (std.mem.eql(u8, component.name, "verify_instruction")) blk: {
+-                    var keys = try cairo.witness.verify_instruction_inputs.gather(allocator, input);
+-                    defer keys.deinit();
+-                    break :blk std.math.cast(u32, keys.rows.len) orelse return error.GeometryOverflow;
+-                } else try builtinDistinct(allocator, input, component.name);
++                const distinct = if (std.mem.eql(u8, component.name, "verify_instruction"))
++                    try distinctInstructionKeys(allocator, input)
++                else
++                    try builtinDistinct(allocator, input, component.name);
+                 const padded = try paddedRows(distinct);
+                 // The canonical compact source exports its full padded slab to
+                 // downstream gathers; its own enabler masks inactive tuples.
+@@ -157,6 +156,68 @@ fn builtinDistinct(allocator: std.mem.Allocator, input: *const cairo.adapter.Pro
+     return unique.count();
+ }
+ 
++/// Distinct `verify_instruction` keys for allocation geometry.
++///
++/// The pinned `verify_instruction_inputs.gather` merges equal instruction
++/// tuples and orders them by pc, but this planner consumes only the row
++/// count. `instructionTuple` is a pure function of `pc` over an immutable
++/// `input`, and every tuple carries `pc` in its first word, so the distinct
++/// tuple count is exactly the distinct executed-pc count. Counting pcs
++/// reproduces `gather().rows.len` without decoding 28 limbs and probing a
++/// 28-byte keyed map once per executed instruction, and without
++/// materializing and sorting the merged rows.
++///
++/// Every pc is still decoded on first sight with the pinned checks, so a
++/// missing or non-instruction memory entry fails exactly as before.
++fn distinctInstructionKeys(allocator: std.mem.Allocator, input: *const cairo.adapter.ProverInput) !u32 {
++    const address_count = input.memory.address_to_id.len;
++    // One bit per address is 1/32 of the `address_to_id` table it indexes,
++    // so the bitmap cannot dominate the capture it accompanies.
++    var seen = try allocator.alloc(u64, (address_count + 63) / 64);
++    defer allocator.free(seen);
++    @memset(seen, 0);
++    var distinct: u32 = 0;
++    for (input.state_transitions.casm_states_by_opcode.states) |states| {
++        for (states.items) |state| {
++            const pc = state.pc.v;
++            if (pc >= address_count) return error.MissingInstruction;
++            const word = pc / 64;
++            const mask = @as(u64, 1) << @intCast(pc % 64);
++            if (seen[word] & mask != 0) continue;
++            seen[word] |= mask;
++            try validateInstructionAt(input, pc);
++            distinct = std.math.add(u32, distinct, 1) catch return error.GeometryOverflow;
++        }
++    }
++    if (distinct == 0) return error.EmptyInput;
++    return distinct;
++}
++
++/// The admission half of the pinned `instructionTuple`, which is private to
++/// its module. The tuple's low limbs only ever pack into the row, so only
++/// the trailing limbs can reject an encoding.
++fn validateInstructionAt(input: *const cairo.adapter.ProverInput, pc: u32) !void {
++    const encoded = input.memory.address_to_id[pc];
++    if (encoded.isEmpty()) return error.MissingInstruction;
++    switch (encoded.raw >> 30) {
++        0 => if (encoded.index() >= input.memory.small_values.len) return error.MissingInstruction,
++        1 => if (encoded.index() >= input.memory.f252_values.len) return error.MissingInstruction,
++        else => return error.InvalidInstruction,
++    }
++    // The pinned tuple packs limbs 0..7, so its `limbs[8..]` check starts
++    // one limb above the packed range.
++    const packed_limbs: u32 = 8;
++    for (packed_limbs..cairo.witness.execution_tables.BIG_LIMB_COUNT) |index| {
++        const limb = cairo.witness.execution_tables.limb(
++            input,
++            cairo.witness.execution_tables.MEMORY_VALUE_TABLE,
++            encoded.raw,
++            index,
++        );
++        if (limb != 0) return error.InvalidInstruction;
++    }
++}
++
+ test "canonical CUDA geometry matches independent Rust checkpoints" {
+     const cases = [_]struct { name: []const u8, variant: claims.PreprocessedVariant }{
+         .{ .name = "all_opcodes", .variant = .canonical_small },
