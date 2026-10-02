@@ -1,6 +1,7 @@
 """The CUDA runtime must receive the exact pinned Cairo artifact set."""
 
 from pathlib import Path
+import json
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -17,6 +18,11 @@ class SetupArtifactTests(unittest.TestCase):
                 source = baseline / "vectors/cairo" / name
                 source.parent.mkdir(parents=True, exist_ok=True)
                 source.write_bytes(f"pinned-{index}".encode())
+            bundle = baseline / "vectors/cairo/official/bundle.bin"
+            bundle.write_bytes(b"AIR")
+            library = baseline / "vectors/cairo/official/air_template_library_v1.json"
+            library.write_text(json.dumps({"sources": [{"bundle": {
+                "path": "bundle.bin", "bytes": 3, "sha256": setup.sha(bundle)}}]}))
             with patch.object(setup, "ROOT", root):
                 setup.prepare_cuda_artifacts(baseline)
                 changed = root / ".cache/cuda-artifacts" / setup.CAIRO_ARTIFACTS[0]
@@ -25,6 +31,7 @@ class SetupArtifactTests(unittest.TestCase):
                 for name in setup.CAIRO_ARTIFACTS:
                     self.assertEqual((root / ".cache/cuda-artifacts" / name).read_bytes(),
                                      (baseline / "vectors/cairo" / name).read_bytes())
+                self.assertEqual((root / ".cache/cuda-artifacts/official/bundle.bin").read_bytes(), b"AIR")
 
 
 if __name__ == "__main__":

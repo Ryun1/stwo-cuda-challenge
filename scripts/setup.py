@@ -40,10 +40,23 @@ def sha(path: Path) -> str:
 def prepare_cuda_artifacts(baseline: Path) -> None:
     """Stage only the pinned Cairo assets required by the CUDA product."""
     target_root = ROOT / ".cache/cuda-artifacts"
-    for name in CAIRO_ARTIFACTS:
+    library = baseline / "vectors/cairo/official/air_template_library_v1.json"
+    manifest = json.loads(library.read_text())
+    bundles = {}
+    for item in manifest["sources"]:
+        bundle = item["bundle"]
+        relative = Path(bundle["path"])
+        if relative.is_absolute() or ".." in relative.parts:
+            raise SystemExit(f"unsafe pinned AIR bundle path: {relative}")
+        bundles[str(Path("official") / relative)] = bundle
+    for name in (*CAIRO_ARTIFACTS, *bundles):
         source = baseline / "vectors/cairo" / name
         if not source.is_file():
             raise SystemExit(f"pinned CUDA artifact missing: {source}")
+        if name in bundles:
+            bundle = bundles[name]
+            if source.stat().st_size != bundle["bytes"] or sha(source) != bundle["sha256"]:
+                raise SystemExit(f"pinned AIR bundle differs from library: {source}")
         target = target_root / name
         target.parent.mkdir(parents=True, exist_ok=True)
         if not target.is_file() or sha(target) != sha(source):
