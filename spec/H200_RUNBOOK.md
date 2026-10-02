@@ -1,6 +1,6 @@
 # H200 operator runbook
 
-This runbook is for the private staging challenge. The local contract checks
+This runbook is for the public staging challenge. The local contract checks
 pass, but no H200 judge runner is registered yet. Do not dispatch a judged
 submission until the live activation gates in [`ACTIVATION.md`](ACTIVATION.md)
 are satisfied. A single H200 is reserved for one run at a time; all CPU builds,

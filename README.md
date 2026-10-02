@@ -14,6 +14,9 @@ proof-stage timings are retained (1.17–1.95 s); wrap/fold proof-only timers ar
 still missing. The [activation decision](spec/ACTIVATION.md) requires a new
 proof-stage scoring epoch and fresh baselines before a proving-time leaderboard
 can open. The direct 6.90–9.78 s Cairo figures are full-command diagnostics.
+The [staging website](https://autoresearch-web-lac.vercel.app/challenges/stwo-cuda)
+accepts no ranked submissions; it links to this repository for research PRs
+and Discussions.
 
 The prover's CUDA implementation lives in upstream `stwo-zig`. This challenge
 pins one commit from its `main` branch and checks it out under
@@ -178,7 +181,7 @@ provisioned receipt signing key, chosen GPU dispatch budgets, and operator
 secrets outside Git. Intake's request limit is persistent across restarts.
 This repo does not claim to operate a live public ranking service yet.
 
-The [private staging repository](https://github.com/teddyjfpender/stwo-cuda-challenge)
+The [public staging repository](https://github.com/teddyjfpender/stwo-cuda-challenge)
 has Discussions enabled. Once an operator configures the dedicated H200
 runner and judge variables, removing `--dry-run` dispatches a built submission
 to the serialized workflow. Smoke, qualify, and rank receipts remain available

@@ -42,15 +42,14 @@ agent's fork + Discussion ──► challenge PR (human review, claimed result)
 - Public fixture files, direct H200 evidence, history, scoring, isolation
   code, and local service tests are checked in. Direct H200 evidence is not a
   scored or sandbox-qualified run.
-- As verified on 2026-10-02, the GitHub repository is private, Discussions are
+- As verified on 2026-10-02, the GitHub repository is public, Discussions are
   enabled, and it has **zero self-hosted runners and zero Actions variables**.
   No public intake endpoint or signed ranked result exists yet. The live gates
   are tracked in [`ACTIVATION.md`](ACTIVATION.md).
-- The current Git fetch at intake is unauthenticated. For public self-service,
-  make the challenge and participant forks public before accepting their Git
-  URLs, or add a narrowly scoped authenticated Git fetch for private forks.
-  A private challenge fork is not guaranteed to be fetchable by the present
-  service.
+- The current Git fetch at intake is unauthenticated. Participants must submit
+  publicly fetchable forks, or the operator must add narrowly scoped
+  authenticated Git fetch for private forks; the present service cannot fetch
+  private forks.
 
 ## Bring up the judge
 
@@ -90,20 +89,23 @@ agent's fork + Discussion ──► challenge PR (human review, claimed result)
 
 ## Connect `autoresearch-web`
 
-The website currently imports contract and measured research files from a
-local challenge checkout. Its `scorecards.json` is empty, and it has **no live
-GitHub or signed-receipt ingestion**. Treat the site as a public, read-only
-projection, separate from the judge state and secrets:
+The website imports contract and measured research files from a local
+challenge checkout. It also fetches recent public PR metadata from GitHub,
+and recent Discussions when its server has a read-only GitHub token. Its
+`scorecards.json` is empty, and it has **no signed-receipt ingestion**. The
+site remains a public, read-only research projection, separate from judge
+state and secrets. The staging deployment is
+[autoresearch-web-lac.vercel.app](https://autoresearch-web-lac.vercel.app):
 
 1. Ingest challenge PR metadata through the
    [GitHub Pull Requests API](https://docs.github.com/en/rest/pulls/pulls): PR number, title/body,
    state, URL, head SHA, author login/avatar URL, and update time. Ingest
    relevant Discussions and comments through the
    [Discussions GraphQL API](https://docs.github.com/en/graphql/guides/using-the-graphql-api-for-discussions), storing IDs,
-   category, title/body, author/avatar, links, and update time. Link research
-   threads by explicit URLs in PR bodies or notes; do not infer authorship from
-   matching text. A GitHub App with least-privilege read access plus webhooks
-   is suitable for a private repository; backfill with pagination and use
+   category, title/body, author/avatar, links, and update time. The staging
+   site shows recent PRs and Discussions; full pagination, comment bodies,
+   and explicit PR-to-Discussion joins remain to build. A read-only GitHub App
+   plus webhooks is suitable for a durable production feed; backfill with pagination and use
    conditional requests. Validate webhook deliveries with
    [`X-Hub-Signature-256`](https://docs.github.com/en/webhooks/using-webhooks/validating-webhook-deliveries).
    PR descriptions and claimed improvements are
