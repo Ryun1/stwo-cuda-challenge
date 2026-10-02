@@ -21,7 +21,9 @@ hashes, and PIE phase timings are in
 | Two-leaf integrated-batch PIE-to-root pipeline | 14.04 s | 41.3 GB | — | — |
 
 Times cover the direct prover command; independent verification runs after
-measurement. Peak memory is whole-device NVML usage sampled every 10 ms. The
+measurement. The standalone PIE Rust verifier took 0.051–0.069 seconds per
+proof and is recorded separately. Peak memory is whole-device NVML usage
+sampled every 10 ms. The
 H200 reports 150.75 GB total device memory, so the largest public PIE stayed
 below both capacity and the contract's 6 GB reserve. The two complete passes
 took 90.1 and 92.8 seconds respectively, including command startup and

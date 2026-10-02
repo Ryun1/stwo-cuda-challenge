@@ -52,7 +52,8 @@
             "statement_and_session_ns": 0.083514263
           },
           "input_bytes": 408205744,
-          "proof_sha256": "fcc457fee3bcaca85efd97d308daa1a16e849c633b4571144417543158eb1eeb"
+          "proof_sha256": "fcc457fee3bcaca85efd97d308daa1a16e849c633b4571144417543158eb1eeb",
+          "independent_verify_s": 0.068388589
         },
         {
           "case_id": "pie:15603744_15603744",
@@ -85,7 +86,8 @@
             "statement_and_session_ns": 0.07884355
           },
           "input_bytes": 444736304,
-          "proof_sha256": "bf963282d104deec420cdaec8e26f8b2fd235c2e2374a7a4f0b8d6eedf0f3109"
+          "proof_sha256": "bf963282d104deec420cdaec8e26f8b2fd235c2e2374a7a4f0b8d6eedf0f3109",
+          "independent_verify_s": 0.066584307
         },
         {
           "case_id": "pie:15581148_15581148",
@@ -118,7 +120,8 @@
             "statement_and_session_ns": 0.080588297
           },
           "input_bytes": 377015036,
-          "proof_sha256": "fd4f9c27bad18a2c7f089b8af5eb7c8e3a3db1c7aeb3d38f3ad5b142f6061b3c"
+          "proof_sha256": "fd4f9c27bad18a2c7f089b8af5eb7c8e3a3db1c7aeb3d38f3ad5b142f6061b3c",
+          "independent_verify_s": 0.051294482
         },
         {
           "case_id": "pie:15590913_15590913",
@@ -151,7 +154,8 @@
             "statement_and_session_ns": 0.079480741
           },
           "input_bytes": 443939388,
-          "proof_sha256": "23ef11f1f7bbf0b31d6ede197bd67d2548975b951283c4cedc0fb6148e443af9"
+          "proof_sha256": "23ef11f1f7bbf0b31d6ede197bd67d2548975b951283c4cedc0fb6148e443af9",
+          "independent_verify_s": 0.067967035
         },
         {
           "case_id": "pie:15588777_15588780",
@@ -184,7 +188,8 @@
             "statement_and_session_ns": 0.079044238
           },
           "input_bytes": 662633424,
-          "proof_sha256": "8f24b5a15dceb4c1b850c39e9fb699acf9e1ddcecac2fc993960ce783c8ca310"
+          "proof_sha256": "8f24b5a15dceb4c1b850c39e9fb699acf9e1ddcecac2fc993960ce783c8ca310",
+          "independent_verify_s": 0.069349988
         },
         {
           "case_id": "pie:15591789_15591789",
@@ -217,7 +222,8 @@
             "statement_and_session_ns": 0.078758329
           },
           "input_bytes": 494945496,
-          "proof_sha256": "3c39b6f0a59aec76ccc5c215a2530905a0617306260e3590284f11931578151a"
+          "proof_sha256": "3c39b6f0a59aec76ccc5c215a2530905a0617306260e3590284f11931578151a",
+          "independent_verify_s": 0.064644834
         },
         {
           "case_id": "recursion:two-leaf-wrap-fold",
@@ -373,7 +379,8 @@
             "statement_and_session_ns": 0.080005763
           },
           "input_bytes": 408205744,
-          "proof_sha256": "fcc457fee3bcaca85efd97d308daa1a16e849c633b4571144417543158eb1eeb"
+          "proof_sha256": "fcc457fee3bcaca85efd97d308daa1a16e849c633b4571144417543158eb1eeb",
+          "independent_verify_s": 0.068225465
         },
         {
           "case_id": "pie:15603744_15603744",
@@ -406,7 +413,8 @@
             "statement_and_session_ns": 0.077988495
           },
           "input_bytes": 444736304,
-          "proof_sha256": "bf963282d104deec420cdaec8e26f8b2fd235c2e2374a7a4f0b8d6eedf0f3109"
+          "proof_sha256": "bf963282d104deec420cdaec8e26f8b2fd235c2e2374a7a4f0b8d6eedf0f3109",
+          "independent_verify_s": 0.066114617
         },
         {
           "case_id": "pie:15581148_15581148",
@@ -439,7 +447,8 @@
             "statement_and_session_ns": 0.077977312
           },
           "input_bytes": 377015036,
-          "proof_sha256": "fd4f9c27bad18a2c7f089b8af5eb7c8e3a3db1c7aeb3d38f3ad5b142f6061b3c"
+          "proof_sha256": "fd4f9c27bad18a2c7f089b8af5eb7c8e3a3db1c7aeb3d38f3ad5b142f6061b3c",
+          "independent_verify_s": 0.065689235
         },
         {
           "case_id": "pie:15590913_15590913",
@@ -472,7 +481,8 @@
             "statement_and_session_ns": 0.079842504
           },
           "input_bytes": 443939388,
-          "proof_sha256": "23ef11f1f7bbf0b31d6ede197bd67d2548975b951283c4cedc0fb6148e443af9"
+          "proof_sha256": "23ef11f1f7bbf0b31d6ede197bd67d2548975b951283c4cedc0fb6148e443af9",
+          "independent_verify_s": 0.067998689
         },
         {
           "case_id": "pie:15588777_15588780",
@@ -505,7 +515,8 @@
             "statement_and_session_ns": 0.08059196
           },
           "input_bytes": 662633424,
-          "proof_sha256": "8f24b5a15dceb4c1b850c39e9fb699acf9e1ddcecac2fc993960ce783c8ca310"
+          "proof_sha256": "8f24b5a15dceb4c1b850c39e9fb699acf9e1ddcecac2fc993960ce783c8ca310",
+          "independent_verify_s": 0.067402262
         },
         {
           "case_id": "pie:15591789_15591789",
@@ -538,7 +549,8 @@
             "statement_and_session_ns": 0.083660671
           },
           "input_bytes": 494945496,
-          "proof_sha256": "3c39b6f0a59aec76ccc5c215a2530905a0617306260e3590284f11931578151a"
+          "proof_sha256": "3c39b6f0a59aec76ccc5c215a2530905a0617306260e3590284f11931578151a",
+          "independent_verify_s": 0.065449045
         },
         {
           "case_id": "recursion:two-leaf-wrap-fold",
