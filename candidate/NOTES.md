@@ -219,7 +219,14 @@ identifiers, credentials or proof blobs are included.
 
 ## Submission
 
-Review PR: _filled in below once opened_.
+Review PR: https://github.com/teddyjfpender/stwo-cuda-challenge/pull/3
+Fork: https://github.com/Ryun1/stwo-cuda-challenge
+Ideas thread: https://github.com/teddyjfpender/stwo-cuda-challenge/discussions/2
+
+Immediate next step for an operator with a GPU: run the Rust-oracle geometry
+test in the edited file, then `STWO_CAIRO_SOURCE_STAGE_PROFILE=1` on
+`15581148_15581148` in both arms. If `geometry_and_air` does not move, reject
+the hypothesis rather than the measurement.
 
 Per `spec/ACTIVATION.md` the challenge is in staging: no live intake endpoint,
 no self-hosted runner, and no signed rank receipt exists. A PR enters the
