@@ -17,6 +17,11 @@ fixture transfers, and hash checks happen before its timed proof work.
    own 2 GiB per-case ext4 output images. Keep service state,
    private fixtures, credentials, and the
    2 GiB canonical preprocessing asset outside this repository.
+   `./setup.sh --build` resolves the explicit pinned CUDA build options from
+   `nvcc`, `g++`, `ar`, and the toolkit's `lib64`, targeting SM 90. Set
+   `STWO_CUDA_NVCC`, `STWO_CUDA_HOST_CXX`, `STWO_CUDA_AR`, `STWO_CUDA_HOME`,
+   `STWO_CUDA_LIBRARY_DIR`, or the host runtime path overrides if auto-detection
+   differs; `STWO_CUDA_BUILD_JOBS` defaults to four.
 2. Clone the challenge, then run `git lfs pull`, `./setup.sh --build`, and
    `python3 scripts/check_data.py`. This fetches the pinned prover, builds the
    baseline and local-workspace CUDA products and both pinned Rust verifiers,

@@ -12,6 +12,7 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from harness.attestation import build_record
+from harness.cuda_toolchain import cuda_build_options
 from harness.kernel_closure import verify as verify_kernel_closure
 from harness.source_policy import check_patch
 from service.intake import IntakeError, Store
@@ -60,7 +61,8 @@ def build(store: Store, submission_id: str, source: Path) -> Path:
         with log.open("w") as sink:
             verify_kernel_closure(source, store.source)
             subprocess.run(["zig", "build", "stwo-cairo-cuda",
-                            "circuit-recursion-cuda-resident", "-Doptimize=ReleaseFast"],
+                            "circuit-recursion-cuda-resident", "-Doptimize=ReleaseFast",
+                            *cuda_build_options()],
                            cwd=source, stdout=sink, stderr=subprocess.STDOUT, check=True)
             subprocess.run(["zig", "build", "test-cairo-cuda-local",
                             "-Doptimize=ReleaseFast"],

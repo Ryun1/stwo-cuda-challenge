@@ -13,6 +13,7 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from harness.kernel_closure import verify as verify_kernel_closure
+from harness.cuda_toolchain import cuda_build_options
 PREPROCESSED_SHA256 = "4d4fda06dfa3bca19554510a158f6c50abad06a74d29c17885ed4cbb88ada34d"
 
 
@@ -94,9 +95,10 @@ def main() -> None:
             raise SystemExit("Zig and nvcc are required for the H200 build")
         run("python3", "scripts/cuda_source_closure.py", cwd=baseline)
         verify_kernel_closure(workspace, baseline)
+        cuda_options = cuda_build_options()
         for tree in (baseline, workspace):
             run("zig", "build", "stwo-cairo-cuda", "circuit-recursion-cuda-resident",
-                "-Doptimize=ReleaseFast", cwd=tree)
+                "-Doptimize=ReleaseFast", *cuda_options, cwd=tree)
         prepare_judge_assets(baseline)
         empty_patch = ROOT / ".cache/empty.patch"
         empty_patch.parent.mkdir(parents=True, exist_ok=True)
