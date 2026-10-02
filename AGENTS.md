@@ -1,6 +1,7 @@
 # Agent instructions
 
 Read `TASK.md`, `spec/WORKLOADS.md`, and `spec/SCORING.md` before changing code.
+For the participant workflow and CLI, read `skills/stwo-cuda-challenge/SKILL.md`.
 The performance target is the full CUDA proving path on H200 for every fixed
 case. For a **candidate submission**, edit only the pinned prover source in
 `workspace/stwo-zig` under the `editablePaths` in `benchmark.json`. Capture changes into

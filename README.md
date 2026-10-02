@@ -23,6 +23,10 @@ commit. Public inputs and retained reference proofs are under
 Start with [TASK.md](TASK.md). The fixed contract is [benchmark.json](benchmark.json),
 the workload and proof obligations are in [spec/WORKLOADS.md](spec/WORKLOADS.md),
 and the scoring and tradeoffs are in [spec/SCORING.md](spec/SCORING.md).
+Coding agents can load the repository's
+[participant skill](skills/stwo-cuda-challenge/SKILL.md); its commands are
+available through [`challenge.py`](challenge.py). Both use paths relative to
+this checkout.
 The specific upstream design choices are recorded in
 [spec/REFERENCES.md](spec/REFERENCES.md). The exact boundary before enabling
 the live H200 leaderboard is in [spec/ACTIVATION.md](spec/ACTIVATION.md).
@@ -71,14 +75,23 @@ On a prepared H200 host, the local loop is:
 
 ```sh
 git lfs pull
-./setup.sh
+python3 challenge.py check-data
+python3 challenge.py setup
 # Edit allowed CUDA source paths in workspace/stwo-zig.
-./scripts/capture-candidate.sh
-./setup.sh --build
-./benchmark.sh --tier smoke --track balanced
+python3 challenge.py capture
+python3 challenge.py setup --build
+python3 challenge.py benchmark --tier smoke --track balanced
 ```
 
-Use `--tier qualify` for all cases once and `--tier rank` for paired scoring.
+Use `python3 challenge.py benchmark --tier qualify` for all cases once and
+`--tier rank` for paired scoring. The original `setup.sh`,
+`scripts/capture-candidate.sh`, and `benchmark.sh` remain equivalent direct
+entry points; `python3 challenge.py --help` lists the participant commands.
+To package a candidate, update `candidate/NOTES.md`, then commit and push
+`candidate/changes.patch` and `candidate/NOTES.md` in your challenge fork.
+Once the intake service is live, submit that fork's HTTPS URL and **full**
+commit SHA to its `POST /submissions` endpoint. The endpoint is not published
+yet; the checked-in [activation record](spec/ACTIVATION.md) tracks that gate.
 The benchmark defaults to the checked-in public inputs and setup assets under
 `.cache/`; operator paths and the private manifest can be supplied with CLI
 flags or the `STWO_*` variables shown in `.github/workflows/h200-rank.yml`.
