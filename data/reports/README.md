@@ -17,6 +17,57 @@ separate clean zero-patch candidate worktree has its own
 Both worktrees were at the pinned source commit. The direct proof runs used the
 baseline binaries; the candidate build has not been scored in a paired A/B run.
 
+## Historical research context
+
+The [Cairo CUDA milestone TSV](historical-cairo-cuda-milestones.tsv) adds 48
+version-by-PIE rows from the verifier-qualified `stwo-zig/autoresearch` H200
+receipts. It follows the **same four historical SN PIE inputs** through v39,
+v41, v42, v44, v45, and retained Hopper v5–v9, v17, and v18 milestones. These
+four inputs are different from the six public cases below. Each row gives the
+backend-reported proof-stage median, separate ingress/publication/process
+timings, sample count, maximum sampled device memory, input/proof/binary hashes,
+and the source receipt's relative path and SHA-256. All imported proofs passed
+the official Rust verifier at the canonical 70/26/24 profile with zero CPU
+fallback. Failed proofs and rejected variants are excluded.
+
+| Historical cold proof stage | SN PIE 1 | SN PIE 2 | SN PIE 3 | SN PIE 4 |
+| --- | ---: | ---: | ---: | ---: |
+| v39, one accepted run each | 3.784 s | 2.955 s | 3.772 s | 3.170 s |
+| v45, three-run medians | 2.218 s | 1.504 s | 2.206 s | 1.595 s |
+| Hopper v5, two paired-run medians | 1.889 s | 1.323 s | 1.878 s | 1.492 s |
+| Hopper v8, two paired-run medians | 1.193 s | 0.811 s | 1.190 s | 0.944 s |
+| Hopper v18, one accepted run each | 1.034 s | 0.657 s | 1.030 s | 0.798 s |
+
+This is a trajectory across versions and H200 sessions, **not** one paired
+v39-versus-v18 trial or a score against the challenge basket. The source
+receipts use the historical `proof_execute_and_decode_ns` backend counter;
+they exclude ingress, publication, external Rust verification, PIE execution,
+adaptation, and queueing. The TSV preserves those other available clocks in
+separate columns. The paired v5–v8 rows select the candidate arm and exclude
+the explicitly disqualified v5 timing block.
+
+The [recursion milestone TSV](historical-recursion-milestones.tsv) records
+three independently verified, six-sample-per-arm parent comparisons from
+`autoresearch`. It includes the producer's `proof_ns` stage and whole-process
+medians separately. These are **CPU/Metal on an Apple M5 Max**, using the
+developmental `recursive_q193_v1` profile and one detached two-child parent.
+They are not CUDA `circuit_multiverifier` fold results and must not be joined to
+the H200 challenge scoring series. The largest recorded preparation comparison
+moved Metal parent proof stage from 3.286 to 2.398 seconds and whole process
+from 7.062 to 5.572 seconds; the CPU comparison moved 6.079 to 5.450 seconds
+for proof stage. The direct Merkle-row experiment had a smaller complete-process
+gain, 5.676 to 5.536 seconds. No historical CUDA-recursion proof-stage receipt
+was available in the selected `autoresearch` sources.
+
+Regenerate both historical TSVs from a clean `stwo-zig` checkout containing
+the cited receipts with `python3 scripts/import_autoresearch_history.py
+--source ../stwo-zig`. The importer checks security, independent verification,
+stable input and proof digests across PIE revisions, recursion log hashes,
+sample counts, and source medians. It writes only repository-relative source
+paths; no machine-local paths from old driver logs are copied.
+
+## Current H200 public basket
+
 | Public case | Measured proving phase | Ingress | Whole command | Peak H200 memory |
 | --- | ---: | ---: | ---: | ---: |
 | PIE `15582797_15582797` | 1.28 s | 5.80 s | 7.63 s | 90.5 GB |
