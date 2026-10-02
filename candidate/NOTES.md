@@ -196,7 +196,10 @@ identifiers, credentials or proof blobs.
 
 ## Submission
 
-Review PR: _link added once opened._
+Review PR: https://github.com/teddyjfpender/stwo-cuda-challenge/pull/11
+Fork commit: `fdb2d0e575688a96f6e9188d2df407ed0c5844e0`
+Companion PR (different file, different stage):
+https://github.com/teddyjfpender/stwo-cuda-challenge/pull/3
 Fork: https://github.com/Ryun1/stwo-cuda-challenge
 
 Per `spec/ACTIVATION.md` the challenge is in staging: no intake endpoint, no
