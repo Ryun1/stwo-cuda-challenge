@@ -6,6 +6,8 @@ proofs and root outputs. [`catalog.json`](catalog.json) maps each public task to
 its required input files and exact expected output SHA-256 digests. The three
 rankings (latency, memory, balanced) score the **same** proving tasks; they are
 performance objectives, not separate proof formats.
+The two-pass direct H200 qualification measurements are under
+[`reports/`](reports/README.md).
 
 | Operation | Inputs | Expected outputs |
 | --- | --- | --- |

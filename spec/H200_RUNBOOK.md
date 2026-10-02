@@ -32,6 +32,12 @@ use these numbers as ranked scores. Use `--case-id ID` to narrow a smoke run.
    `STWO_CUDA_NVCC`, `STWO_CUDA_HOST_CXX`, `STWO_CUDA_AR`, `STWO_CUDA_HOME`,
    `STWO_CUDA_LIBRARY_DIR`, or the host runtime path overrides if auto-detection
    differs; `STWO_CUDA_BUILD_JOBS` defaults to four.
+   Setup stages the pinned Cairo AIR library, every digest-declared AIR bundle,
+   witness programs, topology, and fixed/relation tables under
+   `.cache/cuda-artifacts`. The sandbox separately stages their read-only source
+   copies because the pinned AOT binder also opens one library relative to its
+   working directory; the candidate runs from `/candidate` with explicit
+   writable output paths under `/work`.
 2. Clone the challenge, then run `git lfs pull`, `./setup.sh --build`, and
    `python3 scripts/check_data.py`. This fetches the pinned prover, builds the
    baseline and local-workspace CUDA products and both pinned Rust verifiers,

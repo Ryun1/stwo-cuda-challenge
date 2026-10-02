@@ -1,0 +1,664 @@
+{
+  "schema": "stwo-h200-direct-qualification-v1",
+  "date_utc": "2026-10-02",
+  "qualification": "direct-unranked-unsandboxed",
+  "source_commit": "b2873365dc28ed4bc4b27de10e01ea0beeef7c93",
+  "runner_commit": "af6d494cd52bd83c02266de845c07e7d3cd09067",
+  "device": {
+    "name": "NVIDIA H200",
+    "driver": "580.178.04",
+    "capacity_bytes": 150754820096,
+    "nvml_sample_period_s": 0.01
+  },
+  "sha256": {
+    "cairo_binary": "69343e7a4042c01f6fcef1c5dfd40d8e73dec91ca493bdef07fd6a2161ad22d6",
+    "recursion_binary": "e785b55800056953333163b16da63b9d26dc2356499eca506390d725ac9afab5",
+    "official_cairo_verifier": "340b2090167b250e2359a4d90d4bf56ca53f1ca46120f375c5912634623afdab",
+    "registry_cairo_verifier": "621ebe95c1d28012d3918dadce89be1844db6a8058a49755989db428dbdd078a",
+    "canonical_preprocessed": "4d4fda06dfa3bca19554510a158f6c50abad06a74d29c17885ed4cbb88ada34d"
+  },
+  "rounds": [
+    {
+      "number": 1,
+      "cases": [
+        {
+          "case_id": "pie:15582797_15582797",
+          "family": "pie",
+          "time_s": 7.826957472,
+          "peak_device_bytes": 90498269184,
+          "idle_device_bytes": 644939776,
+          "nvml_samples": 753,
+          "planned_arena_bytes": 88627473376,
+          "verified": true,
+          "canonical_output": true,
+          "gpu_resident": true,
+          "security_profile": "canonical",
+          "qualification": "direct-unranked-unsandboxed",
+          "phase_seconds": {
+            "ingress_ns": 5.994626804,
+            "proof_execute_and_decode_ns": 1.28013891,
+            "adapted_input_until_publication_ns": 7.356051682
+          },
+          "ingress_stage_seconds": {
+            "paths_ns": 3.5689e-05,
+            "runtime_ns": 0.45919314,
+            "source_ns": 1.688676199,
+            "controllers_ns": 0.203043821,
+            "twiddles_ns": 0.047453236,
+            "allocation_ns": 0.166557161,
+            "binding_ns": 0.185681213,
+            "static_ns": 2.781640968,
+            "writers_ns": 0.378831114,
+            "statement_and_session_ns": 0.083514263
+          },
+          "input_bytes": 408205744,
+          "proof_sha256": "fcc457fee3bcaca85efd97d308daa1a16e849c633b4571144417543158eb1eeb"
+        },
+        {
+          "case_id": "pie:15603744_15603744",
+          "family": "pie",
+          "time_s": 7.176216993,
+          "peak_device_bytes": 89726517248,
+          "idle_device_bytes": 644939776,
+          "nvml_samples": 699,
+          "planned_arena_bytes": 87875021696,
+          "verified": true,
+          "canonical_output": true,
+          "gpu_resident": true,
+          "security_profile": "canonical",
+          "qualification": "direct-unranked-unsandboxed",
+          "phase_seconds": {
+            "ingress_ns": 5.445094337,
+            "proof_execute_and_decode_ns": 1.223920801,
+            "adapted_input_until_publication_ns": 6.730738433
+          },
+          "ingress_stage_seconds": {
+            "paths_ns": 3.6258e-05,
+            "runtime_ns": 0.327683643,
+            "source_ns": 1.722637519,
+            "controllers_ns": 0.151432828,
+            "twiddles_ns": 0.046760778,
+            "allocation_ns": 0.140452072,
+            "binding_ns": 0.131598075,
+            "static_ns": 2.400384359,
+            "writers_ns": 0.445265255,
+            "statement_and_session_ns": 0.07884355
+          },
+          "input_bytes": 444736304,
+          "proof_sha256": "bf963282d104deec420cdaec8e26f8b2fd235c2e2374a7a4f0b8d6eedf0f3109"
+        },
+        {
+          "case_id": "pie:15581148_15581148",
+          "family": "pie",
+          "time_s": 6.676260573,
+          "peak_device_bytes": 84559134720,
+          "idle_device_bytes": 644939776,
+          "nvml_samples": 649,
+          "planned_arena_bytes": 82697758816,
+          "verified": true,
+          "canonical_output": true,
+          "gpu_resident": true,
+          "security_profile": "canonical",
+          "qualification": "direct-unranked-unsandboxed",
+          "phase_seconds": {
+            "ingress_ns": 4.991737497,
+            "proof_execute_and_decode_ns": 1.172691664,
+            "adapted_input_until_publication_ns": 6.227867918
+          },
+          "ingress_stage_seconds": {
+            "paths_ns": 3.5068e-05,
+            "runtime_ns": 0.31990942,
+            "source_ns": 1.56220535,
+            "controllers_ns": 0.160136448,
+            "twiddles_ns": 0.041656503,
+            "allocation_ns": 0.133111052,
+            "binding_ns": 0.134519918,
+            "static_ns": 2.175175855,
+            "writers_ns": 0.384399586,
+            "statement_and_session_ns": 0.080588297
+          },
+          "input_bytes": 377015036,
+          "proof_sha256": "fd4f9c27bad18a2c7f089b8af5eb7c8e3a3db1c7aeb3d38f3ad5b142f6061b3c"
+        },
+        {
+          "case_id": "pie:15590913_15590913",
+          "family": "pie",
+          "time_s": 7.577968249,
+          "peak_device_bytes": 105228664832,
+          "idle_device_bytes": 644939776,
+          "nvml_samples": 739,
+          "planned_arena_bytes": 103366794272,
+          "verified": true,
+          "canonical_output": true,
+          "gpu_resident": true,
+          "security_profile": "canonical",
+          "qualification": "direct-unranked-unsandboxed",
+          "phase_seconds": {
+            "ingress_ns": 5.452411357,
+            "proof_execute_and_decode_ns": 1.546578425,
+            "adapted_input_until_publication_ns": 7.060704215
+          },
+          "ingress_stage_seconds": {
+            "paths_ns": 3.7321e-05,
+            "runtime_ns": 0.33307206,
+            "source_ns": 1.691140117,
+            "controllers_ns": 0.211814148,
+            "twiddles_ns": 0.040600853,
+            "allocation_ns": 0.165978712,
+            "binding_ns": 0.129598768,
+            "static_ns": 2.363325079,
+            "writers_ns": 0.437363558,
+            "statement_and_session_ns": 0.079480741
+          },
+          "input_bytes": 443939388,
+          "proof_sha256": "23ef11f1f7bbf0b31d6ede197bd67d2548975b951283c4cedc0fb6148e443af9"
+        },
+        {
+          "case_id": "pie:15588777_15588780",
+          "family": "pie",
+          "time_s": 9.931459046,
+          "peak_device_bytes": 134085476352,
+          "idle_device_bytes": 644939776,
+          "nvml_samples": 969,
+          "planned_arena_bytes": 132228586352,
+          "verified": true,
+          "canonical_output": true,
+          "gpu_resident": true,
+          "security_profile": "canonical",
+          "qualification": "direct-unranked-unsandboxed",
+          "phase_seconds": {
+            "ingress_ns": 7.332827748,
+            "proof_execute_and_decode_ns": 1.953355602,
+            "adapted_input_until_publication_ns": 9.348647627
+          },
+          "ingress_stage_seconds": {
+            "paths_ns": 4.8622e-05,
+            "runtime_ns": 0.339618564,
+            "source_ns": 2.559636047,
+            "controllers_ns": 0.207675578,
+            "twiddles_ns": 0.043074662,
+            "allocation_ns": 0.256599408,
+            "binding_ns": 0.175258699,
+            "static_ns": 2.998682027,
+            "writers_ns": 0.673189903,
+            "statement_and_session_ns": 0.079044238
+          },
+          "input_bytes": 662633424,
+          "proof_sha256": "8f24b5a15dceb4c1b850c39e9fb699acf9e1ddcecac2fc993960ce783c8ca310"
+        },
+        {
+          "case_id": "pie:15591789_15591789",
+          "family": "pie",
+          "time_s": 8.378909983,
+          "peak_device_bytes": 116268072960,
+          "idle_device_bytes": 644939776,
+          "nvml_samples": 818,
+          "planned_arena_bytes": 114411804960,
+          "verified": true,
+          "canonical_output": true,
+          "gpu_resident": true,
+          "security_profile": "canonical",
+          "qualification": "direct-unranked-unsandboxed",
+          "phase_seconds": {
+            "ingress_ns": 6.078018774,
+            "proof_execute_and_decode_ns": 1.675311905,
+            "adapted_input_until_publication_ns": 7.820301447
+          },
+          "ingress_stage_seconds": {
+            "paths_ns": 3.4968e-05,
+            "runtime_ns": 0.326214538,
+            "source_ns": 1.955155821,
+            "controllers_ns": 0.202774586,
+            "twiddles_ns": 0.043592751,
+            "allocation_ns": 0.219291156,
+            "binding_ns": 0.186758411,
+            "static_ns": 2.606353267,
+            "writers_ns": 0.459084947,
+            "statement_and_session_ns": 0.078758329
+          },
+          "input_bytes": 494945496,
+          "proof_sha256": "3c39b6f0a59aec76ccc5c215a2530905a0617306260e3590284f11931578151a"
+        },
+        {
+          "case_id": "recursion:two-leaf-wrap-fold",
+          "family": "recursion",
+          "time_s": 2.720437713,
+          "peak_device_bytes": 29418717184,
+          "idle_device_bytes": 644939776,
+          "nvml_samples": 258,
+          "planned_arena_bytes": 28132566560,
+          "verified": true,
+          "canonical_output": true,
+          "gpu_resident": true,
+          "security_profile": "canonical",
+          "qualification": "direct-unranked-unsandboxed",
+          "phase_seconds": {
+            "parse": 0.014380577,
+            "catalog": 0.002646621,
+            "fold": 2.179319628,
+            "publish": 0.398750534
+          },
+          "input_count": 2,
+          "root_sha256": {
+            "outputs_sha256": "abaefd94d716e2e4f07b5a2fcd521764e5d4c0f8dd04ec60e095bf74d0e1349b",
+            "packed_sha256": "72f17bf582e5438defd30e2f3c52f87ff47e5d6f0d1223b98d37bac8007c54a2",
+            "proof_sha256": "9093f941c4a9144fd653441c582cc0921bac8431df8df46bdd556b8e661af724"
+          }
+        },
+        {
+          "case_id": "recursion:eight-distinct-pie-fold",
+          "family": "recursion",
+          "time_s": 7.977467536,
+          "peak_device_bytes": 29418717184,
+          "idle_device_bytes": 644939776,
+          "nvml_samples": 778,
+          "planned_arena_bytes": 28132566560,
+          "verified": true,
+          "canonical_output": true,
+          "gpu_resident": true,
+          "security_profile": "canonical",
+          "qualification": "direct-unranked-unsandboxed",
+          "phase_seconds": {
+            "parse": 0.048054458,
+            "catalog": 0.002749574,
+            "fold": 7.429668985,
+            "publish": 0.357333955
+          },
+          "input_count": 8,
+          "root_sha256": {
+            "proof_sha256": "053157c56469b3c452435ca9b0569979e928405c130928b8b76b49fbbe2646a9",
+            "outputs_sha256": "5f88063eb7054713e3ee24507b239d972c668a781b99d067fa3b4f0e12fd968d",
+            "packed_sha256": "deb27b33f0057f9cd4cff1ae9eea782d588b3c4a7babce4551fe3a6f043786b4"
+          }
+        },
+        {
+          "case_id": "pipeline:two-leaf-root",
+          "family": "pipeline",
+          "time_s": 18.141932649,
+          "peak_device_bytes": 69461737472,
+          "idle_device_bytes": 644939776,
+          "nvml_samples": 1757,
+          "planned_arena_bytes": 39429769536,
+          "verified": true,
+          "canonical_output": true,
+          "gpu_resident": true,
+          "security_profile": "canonical",
+          "qualification": "direct-unranked-unsandboxed",
+          "mode": "serial",
+          "input_count": 2,
+          "root_sha256": {
+            "proof_sha256": "9093f941c4a9144fd653441c582cc0921bac8431df8df46bdd556b8e661af724",
+            "outputs_sha256": "abaefd94d716e2e4f07b5a2fcd521764e5d4c0f8dd04ec60e095bf74d0e1349b",
+            "packed_sha256": "72f17bf582e5438defd30e2f3c52f87ff47e5d6f0d1223b98d37bac8007c54a2"
+          },
+          "leaf_cairo_phases_seconds": [
+            {
+              "ingress_ns": 4.170567984,
+              "proof_execute_and_decode_ns": 0.439746953,
+              "adapted_input_until_publication_ns": 4.693061092
+            },
+            {
+              "ingress_ns": 4.553978473,
+              "proof_execute_and_decode_ns": 0.46074763,
+              "adapted_input_until_publication_ns": 5.091261092
+            }
+          ]
+        },
+        {
+          "case_id": "pipeline:two-leaf-batch-integrated",
+          "family": "pipeline",
+          "time_s": 13.687262351,
+          "peak_device_bytes": 41307471872,
+          "idle_device_bytes": 644939776,
+          "nvml_samples": 1344,
+          "planned_arena_bytes": 39429769536,
+          "verified": true,
+          "canonical_output": true,
+          "gpu_resident": true,
+          "security_profile": "canonical",
+          "qualification": "direct-unranked-unsandboxed",
+          "mode": "batch_integrated",
+          "input_count": 2,
+          "root_sha256": {
+            "proof_sha256": "9093f941c4a9144fd653441c582cc0921bac8431df8df46bdd556b8e661af724",
+            "outputs_sha256": "abaefd94d716e2e4f07b5a2fcd521764e5d4c0f8dd04ec60e095bf74d0e1349b",
+            "packed_sha256": "72f17bf582e5438defd30e2f3c52f87ff47e5d6f0d1223b98d37bac8007c54a2"
+          },
+          "leaf_cairo_phases_seconds": [
+            {
+              "ingress_ns": 3.365154128,
+              "proof_execute_and_decode_ns": 0.440304898,
+              "adapted_input_until_publication_ns": 3.884324574
+            },
+            {
+              "ingress_ns": 3.747499537,
+              "proof_execute_and_decode_ns": 0.332663214,
+              "adapted_input_until_publication_ns": 4.155250377
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "number": 2,
+      "cases": [
+        {
+          "case_id": "pie:15582797_15582797",
+          "family": "pie",
+          "time_s": 7.428439478,
+          "peak_device_bytes": 90498269184,
+          "idle_device_bytes": 644939776,
+          "nvml_samples": 716,
+          "planned_arena_bytes": 88627473376,
+          "verified": true,
+          "canonical_output": true,
+          "gpu_resident": true,
+          "security_profile": "canonical",
+          "qualification": "direct-unranked-unsandboxed",
+          "phase_seconds": {
+            "ingress_ns": 5.608254059,
+            "proof_execute_and_decode_ns": 1.284979929,
+            "adapted_input_until_publication_ns": 6.956021758
+          },
+          "ingress_stage_seconds": {
+            "paths_ns": 3.77e-05,
+            "runtime_ns": 0.461369671,
+            "source_ns": 1.644068156,
+            "controllers_ns": 0.159342754,
+            "twiddles_ns": 0.107159913,
+            "allocation_ns": 0.145633316,
+            "binding_ns": 0.132720546,
+            "static_ns": 2.406799537,
+            "writers_ns": 0.471116703,
+            "statement_and_session_ns": 0.080005763
+          },
+          "input_bytes": 408205744,
+          "proof_sha256": "fcc457fee3bcaca85efd97d308daa1a16e849c633b4571144417543158eb1eeb"
+        },
+        {
+          "case_id": "pie:15603744_15603744",
+          "family": "pie",
+          "time_s": 7.828285832,
+          "peak_device_bytes": 89726517248,
+          "idle_device_bytes": 644939776,
+          "nvml_samples": 763,
+          "planned_arena_bytes": 87875021696,
+          "verified": true,
+          "canonical_output": true,
+          "gpu_resident": true,
+          "security_profile": "canonical",
+          "qualification": "direct-unranked-unsandboxed",
+          "phase_seconds": {
+            "ingress_ns": 6.077381345,
+            "proof_execute_and_decode_ns": 1.223863539,
+            "adapted_input_until_publication_ns": 7.365053381
+          },
+          "ingress_stage_seconds": {
+            "paths_ns": 4.9831e-05,
+            "runtime_ns": 0.321080092,
+            "source_ns": 1.779416819,
+            "controllers_ns": 0.208457934,
+            "twiddles_ns": 0.095413847,
+            "allocation_ns": 0.16513865,
+            "binding_ns": 0.175332368,
+            "static_ns": 2.819136041,
+            "writers_ns": 0.435367268,
+            "statement_and_session_ns": 0.077988495
+          },
+          "input_bytes": 444736304,
+          "proof_sha256": "bf963282d104deec420cdaec8e26f8b2fd235c2e2374a7a4f0b8d6eedf0f3109"
+        },
+        {
+          "case_id": "pie:15581148_15581148",
+          "family": "pie",
+          "time_s": 7.127396825,
+          "peak_device_bytes": 84559134720,
+          "idle_device_bytes": 644939776,
+          "nvml_samples": 694,
+          "planned_arena_bytes": 82697758816,
+          "verified": true,
+          "canonical_output": true,
+          "gpu_resident": true,
+          "security_profile": "canonical",
+          "qualification": "direct-unranked-unsandboxed",
+          "phase_seconds": {
+            "ingress_ns": 5.459614742,
+            "proof_execute_and_decode_ns": 1.172876374,
+            "adapted_input_until_publication_ns": 6.697232711
+          },
+          "ingress_stage_seconds": {
+            "paths_ns": 3.6101e-05,
+            "runtime_ns": 0.325492216,
+            "source_ns": 1.575732734,
+            "controllers_ns": 0.209423129,
+            "twiddles_ns": 0.120884547,
+            "allocation_ns": 0.158228378,
+            "binding_ns": 0.17815886,
+            "static_ns": 2.420961647,
+            "writers_ns": 0.392719818,
+            "statement_and_session_ns": 0.077977312
+          },
+          "input_bytes": 377015036,
+          "proof_sha256": "fd4f9c27bad18a2c7f089b8af5eb7c8e3a3db1c7aeb3d38f3ad5b142f6061b3c"
+        },
+        {
+          "case_id": "pie:15590913_15590913",
+          "family": "pie",
+          "time_s": 7.979829132,
+          "peak_device_bytes": 105228664832,
+          "idle_device_bytes": 644939776,
+          "nvml_samples": 778,
+          "planned_arena_bytes": 103366794272,
+          "verified": true,
+          "canonical_output": true,
+          "gpu_resident": true,
+          "security_profile": "canonical",
+          "qualification": "direct-unranked-unsandboxed",
+          "phase_seconds": {
+            "ingress_ns": 5.897380788,
+            "proof_execute_and_decode_ns": 1.546762058,
+            "adapted_input_until_publication_ns": 7.50608659
+          },
+          "ingress_stage_seconds": {
+            "paths_ns": 3.4925e-05,
+            "runtime_ns": 0.323742367,
+            "source_ns": 1.833114892,
+            "controllers_ns": 0.283438957,
+            "twiddles_ns": 0.048618277,
+            "allocation_ns": 0.199662045,
+            "binding_ns": 0.181491917,
+            "static_ns": 2.520122011,
+            "writers_ns": 0.427312893,
+            "statement_and_session_ns": 0.079842504
+          },
+          "input_bytes": 443939388,
+          "proof_sha256": "23ef11f1f7bbf0b31d6ede197bd67d2548975b951283c4cedc0fb6148e443af9"
+        },
+        {
+          "case_id": "pie:15588777_15588780",
+          "family": "pie",
+          "time_s": 9.630661489,
+          "peak_device_bytes": 134085476352,
+          "idle_device_bytes": 644939776,
+          "nvml_samples": 939,
+          "planned_arena_bytes": 132228586352,
+          "verified": true,
+          "canonical_output": true,
+          "gpu_resident": true,
+          "security_profile": "canonical",
+          "qualification": "direct-unranked-unsandboxed",
+          "phase_seconds": {
+            "ingress_ns": 7.045660138,
+            "proof_execute_and_decode_ns": 1.949694968,
+            "adapted_input_until_publication_ns": 9.057654374
+          },
+          "ingress_stage_seconds": {
+            "paths_ns": 3.6386e-05,
+            "runtime_ns": 0.320725112,
+            "source_ns": 2.571357419,
+            "controllers_ns": 0.20769801,
+            "twiddles_ns": 0.085527725,
+            "allocation_ns": 0.254812287,
+            "binding_ns": 0.181416147,
+            "static_ns": 2.68281047,
+            "writers_ns": 0.660684622,
+            "statement_and_session_ns": 0.08059196
+          },
+          "input_bytes": 662633424,
+          "proof_sha256": "8f24b5a15dceb4c1b850c39e9fb699acf9e1ddcecac2fc993960ce783c8ca310"
+        },
+        {
+          "case_id": "pie:15591789_15591789",
+          "family": "pie",
+          "time_s": 8.779334458,
+          "peak_device_bytes": 116268072960,
+          "idle_device_bytes": 644939776,
+          "nvml_samples": 855,
+          "planned_arena_bytes": 114411804960,
+          "verified": true,
+          "canonical_output": true,
+          "gpu_resident": true,
+          "security_profile": "canonical",
+          "qualification": "direct-unranked-unsandboxed",
+          "phase_seconds": {
+            "ingress_ns": 6.52549248,
+            "proof_execute_and_decode_ns": 1.674796166,
+            "adapted_input_until_publication_ns": 8.263779666
+          },
+          "ingress_stage_seconds": {
+            "paths_ns": 4.1693e-05,
+            "runtime_ns": 0.339449319,
+            "source_ns": 1.957914446,
+            "controllers_ns": 0.207963861,
+            "twiddles_ns": 0.093511241,
+            "allocation_ns": 0.22493133,
+            "binding_ns": 0.184433136,
+            "static_ns": 2.912305156,
+            "writers_ns": 0.521281627,
+            "statement_and_session_ns": 0.083660671
+          },
+          "input_bytes": 494945496,
+          "proof_sha256": "3c39b6f0a59aec76ccc5c215a2530905a0617306260e3590284f11931578151a"
+        },
+        {
+          "case_id": "recursion:two-leaf-wrap-fold",
+          "family": "recursion",
+          "time_s": 3.070141224,
+          "peak_device_bytes": 29418717184,
+          "idle_device_bytes": 644939776,
+          "nvml_samples": 291,
+          "planned_arena_bytes": 28132566560,
+          "verified": true,
+          "canonical_output": true,
+          "gpu_resident": true,
+          "security_profile": "canonical",
+          "qualification": "direct-unranked-unsandboxed",
+          "phase_seconds": {
+            "parse": 0.013961415,
+            "catalog": 0.002822006,
+            "fold": 2.518067414,
+            "publish": 0.357963933
+          },
+          "input_count": 2,
+          "root_sha256": {
+            "outputs_sha256": "abaefd94d716e2e4f07b5a2fcd521764e5d4c0f8dd04ec60e095bf74d0e1349b",
+            "packed_sha256": "72f17bf582e5438defd30e2f3c52f87ff47e5d6f0d1223b98d37bac8007c54a2",
+            "proof_sha256": "9093f941c4a9144fd653441c582cc0921bac8431df8df46bdd556b8e661af724"
+          }
+        },
+        {
+          "case_id": "recursion:eight-distinct-pie-fold",
+          "family": "recursion",
+          "time_s": 7.831549246,
+          "peak_device_bytes": 29418717184,
+          "idle_device_bytes": 644939776,
+          "nvml_samples": 763,
+          "planned_arena_bytes": 28132566560,
+          "verified": true,
+          "canonical_output": true,
+          "gpu_resident": true,
+          "security_profile": "canonical",
+          "qualification": "direct-unranked-unsandboxed",
+          "phase_seconds": {
+            "parse": 0.049315988,
+            "catalog": 0.002724032,
+            "fold": 7.273978161,
+            "publish": 0.344711322
+          },
+          "input_count": 8,
+          "root_sha256": {
+            "proof_sha256": "053157c56469b3c452435ca9b0569979e928405c130928b8b76b49fbbe2646a9",
+            "outputs_sha256": "5f88063eb7054713e3ee24507b239d972c668a781b99d067fa3b4f0e12fd968d",
+            "packed_sha256": "deb27b33f0057f9cd4cff1ae9eea782d588b3c4a7babce4551fe3a6f043786b4"
+          }
+        },
+        {
+          "case_id": "pipeline:two-leaf-root",
+          "family": "pipeline",
+          "time_s": 18.742681069,
+          "peak_device_bytes": 69461737472,
+          "idle_device_bytes": 644939776,
+          "nvml_samples": 1814,
+          "planned_arena_bytes": 39429769536,
+          "verified": true,
+          "canonical_output": true,
+          "gpu_resident": true,
+          "security_profile": "canonical",
+          "qualification": "direct-unranked-unsandboxed",
+          "mode": "serial",
+          "input_count": 2,
+          "root_sha256": {
+            "proof_sha256": "9093f941c4a9144fd653441c582cc0921bac8431df8df46bdd556b8e661af724",
+            "outputs_sha256": "abaefd94d716e2e4f07b5a2fcd521764e5d4c0f8dd04ec60e095bf74d0e1349b",
+            "packed_sha256": "72f17bf582e5438defd30e2f3c52f87ff47e5d6f0d1223b98d37bac8007c54a2"
+          },
+          "leaf_cairo_phases_seconds": [
+            {
+              "ingress_ns": 4.99474478,
+              "proof_execute_and_decode_ns": 0.494254266,
+              "adapted_input_until_publication_ns": 5.583435304
+            },
+            {
+              "ingress_ns": 4.528677828,
+              "proof_execute_and_decode_ns": 0.474115224,
+              "adapted_input_until_publication_ns": 5.111674922
+            }
+          ]
+        },
+        {
+          "case_id": "pipeline:two-leaf-batch-integrated",
+          "family": "pipeline",
+          "time_s": 14.386436795,
+          "peak_device_bytes": 41307471872,
+          "idle_device_bytes": 644939776,
+          "nvml_samples": 1412,
+          "planned_arena_bytes": 39429769536,
+          "verified": true,
+          "canonical_output": true,
+          "gpu_resident": true,
+          "security_profile": "canonical",
+          "qualification": "direct-unranked-unsandboxed",
+          "mode": "batch_integrated",
+          "input_count": 2,
+          "root_sha256": {
+            "proof_sha256": "9093f941c4a9144fd653441c582cc0921bac8431df8df46bdd556b8e661af724",
+            "outputs_sha256": "abaefd94d716e2e4f07b5a2fcd521764e5d4c0f8dd04ec60e095bf74d0e1349b",
+            "packed_sha256": "72f17bf582e5438defd30e2f3c52f87ff47e5d6f0d1223b98d37bac8007c54a2"
+          },
+          "leaf_cairo_phases_seconds": [
+            {
+              "ingress_ns": 3.882632831,
+              "proof_execute_and_decode_ns": 0.441112517,
+              "adapted_input_until_publication_ns": 4.400983071
+            },
+            {
+              "ingress_ns": 3.921469434,
+              "proof_execute_and_decode_ns": 0.333360228,
+              "adapted_input_until_publication_ns": 4.331035551
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
